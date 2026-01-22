@@ -6,7 +6,7 @@ import { useState } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { Product, Category } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { productsApi } from "@/lib/api"
 
 interface ProductFormProps {
   product: Product | null
@@ -20,7 +20,7 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
     code: product?.code || "",
     name: product?.name || "",
     description: product?.description || "",
-    category_id: product?.category_id || "",
+    category: product?.category_id || null,
     unit: product?.unit || "UN",
     purchase_price: product?.purchase_price || 0,
     sale_price: product?.sale_price || 0,
@@ -32,30 +32,34 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
   })
   const [saving, setSaving] = useState(false)
 
-  const supabase = getSupabaseClient()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
-    const data = {
-      ...formData,
-      category_id: formData.category_id || null,
-      purchase_price: Number(formData.purchase_price),
-      sale_price: Number(formData.sale_price),
-      current_stock: Number(formData.current_stock),
-      min_stock: Number(formData.min_stock),
-      max_stock: Number(formData.max_stock),
-    }
+    try {
+      const data = {
+        ...formData,
+        category: formData.category || null,
+        purchase_price: Number(formData.purchase_price),
+        sale_price: Number(formData.sale_price),
+        current_stock: Number(formData.current_stock),
+        min_stock: Number(formData.min_stock),
+        max_stock: Number(formData.max_stock),
+      }
 
-    if (product) {
-      await supabase.from("products").update(data).eq("id", product.id)
-    } else {
-      await supabase.from("products").insert(data)
-    }
+      if (product) {
+        await productsApi.update(product.id, data)
+      } else {
+        await productsApi.create(data)
+      }
 
-    setSaving(false)
-    onSave()
+      onSave()
+    } catch (error) {
+      console.error("Erro ao salvar produto:", error)
+      alert("Erro ao salvar produto")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -93,8 +97,8 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
               <FormField label="Categoria:" inline>
                 <select
                   className="erp-select w-48"
-                  value={formData.category_id}
-                  onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                  value={formData.category || ""}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value ? Number(e.target.value) : null })}
                 >
                   <option value="">Selecione...</option>
                   {categories.map((cat) => (

@@ -9,7 +9,7 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { ProductionCost, Product } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { costsApi } from "@/lib/api"
 
 interface CostsContentProps {
   initialCosts: (ProductionCost & { product: { name: string; code: string } | null })[]
@@ -17,7 +17,7 @@ interface CostsContentProps {
 }
 
 export function CostsContent({ initialCosts, products }: CostsContentProps) {
-  const [costs, setCosts] = useState(initialCosts)
+  const [costs, setCosts] = useState(Array.isArray(initialCosts) ? initialCosts : [])
   const [selectedCost, setSelectedCost] = useState<ProductionCost | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
@@ -32,14 +32,13 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
   })
   const [saving, setSaving] = useState(false)
 
-  const supabase = getSupabaseClient()
-
   const refreshCosts = async () => {
-    const { data } = await supabase
-      .from("production_costs")
-      .select("*, product:products(name, code)")
-      .order("date", { ascending: false })
-    if (data) setCosts(data)
+    try {
+      const data = await costsApi.getAll()
+      setCosts(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar custos:", error)
+    }
   }
 
   const handleNew = () => {
@@ -58,7 +57,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
   const handleEdit = () => {
     if (selectedCost) {
       setFormData({
-        product_id: String(selectedCost.product_id),
+        product_id: String(selectedCost.product),
         description: selectedCost.description,
         cost_type: selectedCost.cost_type,
         value: Number(selectedCost.value),
@@ -71,10 +70,15 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
 
   const handleDelete = async () => {
     if (selectedCost && confirm("Deseja realmente excluir este custo?")) {
-      await supabase.from("production_costs").delete().eq("id", selectedCost.id)
-      await refreshCosts()
-      setSelectedCost(null)
-      setSelectedIndex(undefined)
+      try {
+        await costsApi.delete(selectedCost.id)
+        await refreshCosts()
+        setSelectedCost(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir custo:", error)
+        alert("Erro ao excluir custo")
+      }
     }
   }
 
@@ -82,21 +86,41 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     e.preventDefault()
     setSaving(true)
 
-    const data = {
-      product_id: Number(formData.product_id),
-      description: formData.description,
-      cost_type: formData.cost_type,
-      value: formData.value,
-      date: formData.date,
-      notes: formData.notes,
-    }
+    try {
+      const data = {
+        product: Number(formData.product_id),
+        description: formData.description,
+        cost_type: formData.cost_type,
+        value: formData.value,
+        date: formData.date,
+        notes: formData.notes,
+      }
 
-    if (selectedCost) {
-      await supabase.from("production_costs").update(data).eq("id", selectedCost.id)
-    } else {
-      await supabase.from("production_costs").insert(data)
-    }
+      if (selectedCost) {
+        await costsApi.update(selectedCost.id, data)
+      } else {
+        await costsApi.create(data)
+      }
 
+      await refreshCosts()
+      setShowForm(false)
+      setSelectedCost(null)
+      setSelectedIndex(undefined)
+    } catch (error) {
+      console.error("Erro ao salvar custo:", error)
+      alert("Erro ao salvar custo")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setShowForm(false)
+    setSelectedCost(null)
+    setSelectedIndex(undefined)
+  }
+
+  const handleSaveComplete = async () => {
     setSaving(false)
     setShowForm(false)
     setSelectedCost(null)
@@ -290,3 +314,4 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     </div>
   )
 }
+

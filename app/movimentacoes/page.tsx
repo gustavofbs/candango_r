@@ -1,16 +1,19 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { MovementsContent } from "@/components/movements/movements-content"
+import { movementsApi, productsApi } from "@/lib/api"
+import type { Product } from "@/lib/types"
 
 export default async function MovementsPage() {
-  const supabase = await getSupabaseServer()
+  try {
+    const [movements, products] = await Promise.all([
+      movementsApi.getAll(),
+      productsApi.getAll(),
+    ])
 
-  const [{ data: movements }, { data: products }] = await Promise.all([
-    supabase
-      .from("stock_movements")
-      .select("*, product:products(name, code)")
-      .order("created_at", { ascending: false }),
-    supabase.from("products").select("*").eq("active", true).order("name"),
-  ])
+    const activeProducts = products.filter((p: Product) => p.active)
 
-  return <MovementsContent initialMovements={movements || []} products={products || []} />
+    return <MovementsContent initialMovements={movements} products={activeProducts} />
+  } catch (error) {
+    console.error("Erro ao carregar movimentações:", error)
+    return <MovementsContent initialMovements={[]} products={[]} />
+  }
 }

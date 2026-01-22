@@ -6,7 +6,7 @@ import { useState } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { Supplier } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { suppliersApi } from "@/lib/api"
 
 interface SupplierFormProps {
   supplier: Supplier | null
@@ -30,20 +30,23 @@ export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) 
   })
   const [saving, setSaving] = useState(false)
 
-  const supabase = getSupabaseClient()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
-    if (supplier) {
-      await supabase.from("suppliers").update(formData).eq("id", supplier.id)
-    } else {
-      await supabase.from("suppliers").insert(formData)
+    try {
+      if (supplier) {
+        await suppliersApi.update(supplier.id, formData)
+      } else {
+        await suppliersApi.create(formData)
+      }
+      onSave()
+    } catch (error) {
+      console.error("Erro ao salvar fornecedor:", error)
+      alert("Erro ao salvar fornecedor")
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
-    onSave()
   }
 
   return (
@@ -162,3 +165,4 @@ export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) 
     </ErpWindow>
   )
 }
+

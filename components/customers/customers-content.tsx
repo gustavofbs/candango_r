@@ -7,24 +7,26 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { CustomerForm } from "@/components/customers/customer-form"
 import type { Customer } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { customersApi } from "@/lib/api"
 
 interface CustomersContentProps {
   initialCustomers: Customer[]
 }
 
 export function CustomersContent({ initialCustomers }: CustomersContentProps) {
-  const [customers, setCustomers] = useState(initialCustomers)
+  const [customers, setCustomers] = useState(Array.isArray(initialCustomers) ? initialCustomers : [])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
 
-  const supabase = getSupabaseClient()
-
   const refreshCustomers = async () => {
-    const { data } = await supabase.from("customers").select("*").order("name")
-    if (data) setCustomers(data)
+    try {
+      const data = await customersApi.getAll()
+      setCustomers(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar clientes:", error)
+    }
   }
 
   const handleNew = () => {
@@ -40,10 +42,15 @@ export function CustomersContent({ initialCustomers }: CustomersContentProps) {
 
   const handleDelete = async () => {
     if (selectedCustomer && confirm("Deseja realmente excluir este cliente?")) {
-      await supabase.from("customers").delete().eq("id", selectedCustomer.id)
-      await refreshCustomers()
-      setSelectedCustomer(null)
-      setSelectedIndex(undefined)
+      try {
+        await customersApi.delete(selectedCustomer.id)
+        await refreshCustomers()
+        setSelectedCustomer(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir cliente:", error)
+        alert("Erro ao excluir cliente")
+      }
     }
   }
 
@@ -115,3 +122,4 @@ export function CustomersContent({ initialCustomers }: CustomersContentProps) {
     </div>
   )
 }
+

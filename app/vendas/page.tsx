@@ -1,14 +1,21 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { SalesContent } from "@/components/sales/sales-content"
+import { salesApi, customersApi, productsApi } from "@/lib/api"
+import type { Customer, Product } from "@/lib/types"
 
 export default async function SalesPage() {
-  const supabase = await getSupabaseServer()
+  try {
+    const [sales, customers, products] = await Promise.all([
+      salesApi.getAll(),
+      customersApi.getAll(),
+      productsApi.getAll(),
+    ])
 
-  const [{ data: sales }, { data: customers }, { data: products }] = await Promise.all([
-    supabase.from("sales").select("*, customer:customers(name)").order("created_at", { ascending: false }),
-    supabase.from("customers").select("*").eq("active", true).order("name"),
-    supabase.from("products").select("*").eq("active", true).order("name"),
-  ])
+    const activeCustomers = customers.filter((c: Customer) => c.active)
+    const activeProducts = products.filter((p: Product) => p.active)
 
-  return <SalesContent initialSales={sales || []} customers={customers || []} products={products || []} />
+    return <SalesContent initialSales={sales} customers={activeCustomers} products={activeProducts} />
+  } catch (error) {
+    console.error("Erro ao carregar vendas:", error)
+    return <SalesContent initialSales={[]} customers={[]} products={[]} />
+  }
 }

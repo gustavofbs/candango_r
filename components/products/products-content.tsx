@@ -7,25 +7,27 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { ProductForm } from "@/components/products/product-form"
 import type { Product, Category } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { productsApi } from "@/lib/api"
 
 interface ProductsContentProps {
-  initialProducts: (Product & { category: { name: string } | null })[]
+  initialProducts: Product[]
   categories: Category[]
 }
 
 export function ProductsContent({ initialProducts, categories }: ProductsContentProps) {
-  const [products, setProducts] = useState(initialProducts)
+  const [products, setProducts] = useState(Array.isArray(initialProducts) ? initialProducts : [])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [filter, setFilter] = useState("")
 
-  const supabase = getSupabaseClient()
-
   const refreshProducts = async () => {
-    const { data } = await supabase.from("products").select("*, category:categories(name)").order("name")
-    if (data) setProducts(data)
+    try {
+      const data = await productsApi.getAll()
+      setProducts(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar produtos:", error)
+    }
   }
 
   const handleNew = () => {
@@ -41,10 +43,15 @@ export function ProductsContent({ initialProducts, categories }: ProductsContent
 
   const handleDelete = async () => {
     if (selectedProduct && confirm("Deseja realmente excluir este produto?")) {
-      await supabase.from("products").delete().eq("id", selectedProduct.id)
-      await refreshProducts()
-      setSelectedProduct(null)
-      setSelectedIndex(undefined)
+      try {
+        await productsApi.delete(selectedProduct.id)
+        await refreshProducts()
+        setSelectedProduct(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir produto:", error)
+        alert("Erro ao excluir produto")
+      }
     }
   }
 
@@ -89,7 +96,7 @@ export function ProductsContent({ initialProducts, categories }: ProductsContent
             {
               key: "category",
               header: "Categoria",
-              render: (item) => item.category?.name || "-",
+              render: (item) => item.category_name || "-",
             },
             { key: "unit", header: "Un.", width: "50px" },
             {

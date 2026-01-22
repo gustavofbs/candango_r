@@ -1,13 +1,19 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { CostsContent } from "@/components/costs/costs-content"
+import { costsApi, productsApi } from "@/lib/api"
+import type { Product } from "@/lib/types"
 
 export default async function CostsPage() {
-  const supabase = await getSupabaseServer()
+  try {
+    const [costs, products] = await Promise.all([
+      costsApi.getAll(),
+      productsApi.getAll(),
+    ])
 
-  const [{ data: costs }, { data: products }] = await Promise.all([
-    supabase.from("production_costs").select("*, product:products(name, code)").order("date", { ascending: false }),
-    supabase.from("products").select("*").eq("active", true).order("name"),
-  ])
+    const activeProducts = products.filter((p: Product) => p.active)
 
-  return <CostsContent initialCosts={costs || []} products={products || []} />
+    return <CostsContent initialCosts={costs} products={activeProducts} />
+  } catch (error) {
+    console.error("Erro ao carregar custos:", error)
+    return <CostsContent initialCosts={[]} products={[]} />
+  }
 }

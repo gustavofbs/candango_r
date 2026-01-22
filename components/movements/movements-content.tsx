@@ -9,7 +9,7 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { StockMovement, Product } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { movementsApi } from "@/lib/api"
 
 interface MovementsContentProps {
   initialMovements: (StockMovement & { product: { name: string; code: string } | null })[]
@@ -17,7 +17,7 @@ interface MovementsContentProps {
 }
 
 export function MovementsContent({ initialMovements, products }: MovementsContentProps) {
-  const [movements, setMovements] = useState(initialMovements)
+  const [movements, setMovements] = useState(Array.isArray(initialMovements) ? initialMovements : [])
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("")
@@ -30,14 +30,13 @@ export function MovementsContent({ initialMovements, products }: MovementsConten
   })
   const [saving, setSaving] = useState(false)
 
-  const supabase = getSupabaseClient()
-
   const refreshMovements = async () => {
-    const { data } = await supabase
-      .from("stock_movements")
-      .select("*, product:products(name, code)")
-      .order("created_at", { ascending: false })
-    if (data) setMovements(data)
+    try {
+      const data = await movementsApi.getAll()
+      setMovements(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar movimentações:", error)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,28 +49,15 @@ export function MovementsContent({ initialMovements, products }: MovementsConten
       return
     }
 
-    // Create movement
-    await supabase.from("stock_movements").insert({
-      product_id: Number(formData.product_id),
+    // Create movement (API will update stock automatically)
+    await movementsApi.create({
+      product: Number(formData.product_id),
       movement_type: formData.movement_type,
       quantity: formData.quantity,
       unit_price: formData.unit_price,
-      total_price: formData.quantity * formData.unit_price,
+      reference_type: formData.reference_type,
       notes: formData.notes,
     })
-
-    // Update stock
-    const newStock =
-      formData.movement_type === "entrada"
-        ? product.current_stock + formData.quantity
-        : product.current_stock - formData.quantity
-
-    await supabase
-      .from("products")
-      .update({
-        current_stock: newStock,
-      })
-      .eq("id", product.id)
 
     setSaving(false)
     setShowForm(false)
@@ -263,3 +249,4 @@ export function MovementsContent({ initialMovements, products }: MovementsConten
     </div>
   )
 }
+

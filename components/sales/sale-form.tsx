@@ -7,7 +7,7 @@ import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import { DataGrid } from "@/components/erp/data-grid"
 import type { Customer, Product } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { salesApi, productsApi } from "@/lib/api"
 
 interface SaleItem {
   product_id: number
@@ -41,8 +41,6 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     discount: 0,
   })
   const [saving, setSaving] = useState(false)
-
-  const supabase = getSupabaseClient()
 
   const addItem = () => {
     const product = products.find((p) => p.id === Number(newItem.product_id))
@@ -85,63 +83,23 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     // Generate sale number
     const saleNumber = `VND${Date.now().toString().slice(-8)}`
 
-    // Create sale
-    const { data: sale, error: saleError } = await supabase
-      .from("sales")
-      .insert({
-        sale_number: saleNumber,
-        customer_id: formData.customer_id || null,
-        sale_date: formData.sale_date,
-        total_amount: totalAmount,
-        discount: formData.discount,
-        final_amount: finalAmount,
-        payment_method: formData.payment_method,
-        status: formData.status,
-        notes: formData.notes,
-      })
-      .select()
-      .single()
-
-    if (saleError || !sale) {
-      alert("Erro ao criar venda")
-      setSaving(false)
-      return
-    }
-
-    // Create sale items and stock movements
-    for (const item of items) {
-      await supabase.from("sale_items").insert({
-        sale_id: sale.id,
-        product_id: item.product_id,
+    // Create sale with items (API will handle stock movements automatically)
+    await salesApi.create({
+      sale_number: saleNumber,
+      customer: formData.customer_id ? Number(formData.customer_id) : null,
+      sale_date: formData.sale_date,
+      total_amount: totalAmount,
+      discount: formData.discount,
+      payment_method: formData.payment_method,
+      status: "concluida",
+      notes: formData.notes,
+      items: items.map(item => ({
+        product: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
         discount: item.discount,
-        total_price: item.total_price,
-      })
-
-      // Update stock
-      const product = products.find((p) => p.id === item.product_id)
-      if (product) {
-        await supabase
-          .from("products")
-          .update({
-            current_stock: product.current_stock - item.quantity,
-          })
-          .eq("id", item.product_id)
-
-        // Create stock movement
-        await supabase.from("stock_movements").insert({
-          product_id: item.product_id,
-          movement_type: "saida",
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          reference_type: "venda",
-          reference_id: sale.id,
-          notes: `Venda ${saleNumber}`,
-        })
-      }
-    }
+      })),
+    })
 
     setSaving(false)
     onSave()
@@ -318,3 +276,4 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     </ErpWindow>
   )
 }
+

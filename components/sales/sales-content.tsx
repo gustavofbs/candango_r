@@ -7,7 +7,7 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { SaleForm } from "@/components/sales/sale-form"
 import type { Sale, Customer, Product } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { salesApi } from "@/lib/api"
 
 interface SalesContentProps {
   initialSales: (Sale & { customer: { name: string } | null })[]
@@ -16,20 +16,19 @@ interface SalesContentProps {
 }
 
 export function SalesContent({ initialSales, customers, products }: SalesContentProps) {
-  const [sales, setSales] = useState(initialSales)
+  const [sales, setSales] = useState(Array.isArray(initialSales) ? initialSales : [])
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
 
-  const supabase = getSupabaseClient()
-
   const refreshSales = async () => {
-    const { data } = await supabase
-      .from("sales")
-      .select("*, customer:customers(name)")
-      .order("created_at", { ascending: false })
-    if (data) setSales(data)
+    try {
+      const data = await salesApi.getAll()
+      setSales(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar vendas:", error)
+    }
   }
 
   const handleNew = () => {
@@ -37,13 +36,23 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
     setShowForm(true)
   }
 
+  const handleEdit = () => {
+    if (selectedSale) {
+      setShowForm(true)
+    }
+  }
+
   const handleDelete = async () => {
     if (selectedSale && confirm("Deseja realmente excluir esta venda?")) {
-      await supabase.from("sale_items").delete().eq("sale_id", selectedSale.id)
-      await supabase.from("sales").delete().eq("id", selectedSale.id)
-      await refreshSales()
-      setSelectedSale(null)
-      setSelectedIndex(undefined)
+      try {
+        await salesApi.delete(selectedSale.id)
+        await refreshSales()
+        setSelectedSale(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir venda:", error)
+        alert("Erro ao excluir venda")
+      }
     }
   }
 
@@ -147,3 +156,4 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
     </div>
   )
 }
+

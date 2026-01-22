@@ -1,9 +1,12 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { SuppliersContent } from "@/components/suppliers/suppliers-content"
+import { suppliersApi } from "@/lib/api"
 
 export default async function SuppliersPage() {
-  const supabase = await getSupabaseServer()
-  const { data: suppliers } = await supabase.from("suppliers").select("*").order("name")
-
-  return <SuppliersContent initialSuppliers={suppliers || []} />
+  try {
+    const suppliers = await suppliersApi.getAll()
+    return <SuppliersContent initialSuppliers={suppliers} />
+  } catch (error) {
+    console.error("Erro ao carregar fornecedores:", error)
+    return <SuppliersContent initialSuppliers={[]} />
+  }
 }

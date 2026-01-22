@@ -7,24 +7,26 @@ import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { SupplierForm } from "@/components/suppliers/supplier-form"
 import type { Supplier } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { suppliersApi } from "@/lib/api"
 
 interface SuppliersContentProps {
   initialSuppliers: Supplier[]
 }
 
 export function SuppliersContent({ initialSuppliers }: SuppliersContentProps) {
-  const [suppliers, setSuppliers] = useState(initialSuppliers)
+  const [suppliers, setSuppliers] = useState(Array.isArray(initialSuppliers) ? initialSuppliers : [])
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
 
-  const supabase = getSupabaseClient()
-
   const refreshSuppliers = async () => {
-    const { data } = await supabase.from("suppliers").select("*").order("name")
-    if (data) setSuppliers(data)
+    try {
+      const data = await suppliersApi.getAll()
+      setSuppliers(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar fornecedores:", error)
+    }
   }
 
   const handleNew = () => {
@@ -40,10 +42,15 @@ export function SuppliersContent({ initialSuppliers }: SuppliersContentProps) {
 
   const handleDelete = async () => {
     if (selectedSupplier && confirm("Deseja realmente excluir este fornecedor?")) {
-      await supabase.from("suppliers").delete().eq("id", selectedSupplier.id)
-      await refreshSuppliers()
-      setSelectedSupplier(null)
-      setSelectedIndex(undefined)
+      try {
+        await suppliersApi.delete(selectedSupplier.id)
+        await refreshSuppliers()
+        setSelectedSupplier(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir fornecedor:", error)
+        alert("Erro ao excluir fornecedor")
+      }
     }
   }
 
@@ -112,3 +119,4 @@ export function SuppliersContent({ initialSuppliers }: SuppliersContentProps) {
     </div>
   )
 }
+

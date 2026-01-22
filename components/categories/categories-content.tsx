@@ -5,24 +5,26 @@ import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
 import type { Category } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { categoriesApi } from "@/lib/api"
 
 interface CategoriesContentProps {
   initialCategories: Category[]
 }
 
 export function CategoriesContent({ initialCategories }: CategoriesContentProps) {
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState(Array.isArray(initialCategories) ? initialCategories : [])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({ name: "", description: "" })
 
-  const supabase = getSupabaseClient()
-
   const refreshCategories = async () => {
-    const { data } = await supabase.from("categories").select("*").order("name")
-    if (data) setCategories(data)
+    try {
+      const data = await categoriesApi.getAll()
+      setCategories(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar categorias:", error)
+    }
   }
 
   const handleNew = () => {
@@ -43,23 +45,33 @@ export function CategoriesContent({ initialCategories }: CategoriesContentProps)
 
   const handleDelete = async () => {
     if (selectedCategory && confirm("Deseja realmente excluir esta categoria?")) {
-      await supabase.from("categories").delete().eq("id", selectedCategory.id)
-      await refreshCategories()
-      setSelectedCategory(null)
-      setSelectedIndex(undefined)
+      try {
+        await categoriesApi.delete(selectedCategory.id)
+        await refreshCategories()
+        setSelectedCategory(null)
+        setSelectedIndex(undefined)
+      } catch (error) {
+        console.error("Erro ao excluir categoria:", error)
+        alert("Erro ao excluir categoria")
+      }
     }
   }
 
   const handleSave = async () => {
-    if (selectedCategory) {
-      await supabase.from("categories").update(formData).eq("id", selectedCategory.id)
-    } else {
-      await supabase.from("categories").insert(formData)
+    try {
+      if (selectedCategory) {
+        await categoriesApi.update(selectedCategory.id, formData)
+      } else {
+        await categoriesApi.create(formData)
+      }
+      await refreshCategories()
+      setShowForm(false)
+      setSelectedCategory(null)
+      setSelectedIndex(undefined)
+    } catch (error) {
+      console.error("Erro ao salvar categoria:", error)
+      alert("Erro ao salvar categoria")
     }
-    await refreshCategories()
-    setShowForm(false)
-    setSelectedCategory(null)
-    setSelectedIndex(undefined)
   }
 
   return (
@@ -132,3 +144,4 @@ export function CategoriesContent({ initialCategories }: CategoriesContentProps)
     </div>
   )
 }
+

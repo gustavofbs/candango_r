@@ -1,13 +1,16 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { ProductsContent } from "@/components/products/products-content"
+import { productsApi, categoriesApi } from "@/lib/api"
 
 export default async function ProductsPage() {
-  const supabase = await getSupabaseServer()
+  try {
+    const [products, categories] = await Promise.all([
+      productsApi.getAll(),
+      categoriesApi.getAll(),
+    ])
 
-  const [{ data: products }, { data: categories }] = await Promise.all([
-    supabase.from("products").select("*, category:categories(name)").order("name"),
-    supabase.from("categories").select("*").order("name"),
-  ])
-
-  return <ProductsContent initialProducts={products || []} categories={categories || []} />
+    return <ProductsContent initialProducts={products} categories={categories} />
+  } catch (error) {
+    console.error("Erro ao carregar produtos:", error)
+    return <ProductsContent initialProducts={[]} categories={[]} />
+  }
 }

@@ -6,7 +6,7 @@ import { useState } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { Customer } from "@/lib/types"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { customersApi } from "@/lib/api"
 
 interface CustomerFormProps {
   customer: Customer | null
@@ -29,20 +29,23 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
   })
   const [saving, setSaving] = useState(false)
 
-  const supabase = getSupabaseClient()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
 
-    if (customer) {
-      await supabase.from("customers").update(formData).eq("id", customer.id)
-    } else {
-      await supabase.from("customers").insert(formData)
+    try {
+      if (customer) {
+        await customersApi.update(customer.id, formData)
+      } else {
+        await customersApi.create(formData)
+      }
+      onSave()
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error)
+      alert("Erro ao salvar cliente")
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
-    onSave()
   }
 
   return (
@@ -153,3 +156,4 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
     </ErpWindow>
   )
 }
+
