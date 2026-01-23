@@ -73,8 +73,8 @@ export function MovementsContent({ initialMovements, products }: MovementsConten
 
   const filteredMovements = movements.filter((m) => {
     const matchesText =
-      m.product?.name?.toLowerCase().includes(filter.toLowerCase()) ||
-      m.product?.code?.toLowerCase().includes(filter.toLowerCase())
+      m.product_name?.toLowerCase().includes(filter.toLowerCase()) ||
+      m.product_code?.toLowerCase().includes(filter.toLowerCase())
     const matchesType = !typeFilter || m.movement_type === typeFilter
     return matchesText && matchesType
   })
@@ -122,7 +122,7 @@ export function MovementsContent({ initialMovements, products }: MovementsConten
             {
               key: "product",
               header: "Produto",
-              render: (item) => (item.product ? `${item.product.code} - ${item.product.name}` : "-"),
+              render: (item) => (item.product_code && item.product_name ? `${item.product_code} - ${item.product_name}` : item.product_name || "-"),
             },
             {
               key: "movement_type",

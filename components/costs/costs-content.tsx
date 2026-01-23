@@ -25,7 +25,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
   const [formData, setFormData] = useState({
     product_id: "",
     description: "",
-    cost_type: "materia_prima",
+    cost_type: "material",
     value: 0,
     date: new Date().toISOString().split("T")[0],
     notes: "",
@@ -46,7 +46,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     setFormData({
       product_id: "",
       description: "",
-      cost_type: "materia_prima",
+      cost_type: "material",
       value: 0,
       date: new Date().toISOString().split("T")[0],
       notes: "",
@@ -84,6 +84,17 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!formData.product_id) {
+      alert("Selecione um produto")
+      return
+    }
+    
+    if (!formData.description.trim()) {
+      alert("A descrição é obrigatória")
+      return
+    }
+    
     setSaving(true)
 
     try {
@@ -91,10 +102,12 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
         product: Number(formData.product_id),
         description: formData.description,
         cost_type: formData.cost_type,
-        value: formData.value,
+        value: Number(formData.value),
         date: formData.date,
         notes: formData.notes,
       }
+
+      console.log("Dados sendo enviados:", data)
 
       if (selectedCost) {
         await costsApi.update(selectedCost.id, data)
@@ -106,9 +119,29 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
       setShowForm(false)
       setSelectedCost(null)
       setSelectedIndex(undefined)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar custo:", error)
-      alert("Erro ao salvar custo")
+      console.error("Dados da resposta:", error?.response?.data)
+      console.error("Status:", error?.response?.status)
+      
+      const errorData = error?.response?.data
+      let errorMessage = "Erro ao salvar custo"
+      
+      if (errorData) {
+        if (typeof errorData === 'string') {
+          errorMessage = errorData
+        } else if (errorData.product) {
+          errorMessage = `Produto: ${errorData.product[0]}`
+        } else if (errorData.description) {
+          errorMessage = `Descrição: ${errorData.description[0]}`
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail
+        } else {
+          errorMessage = JSON.stringify(errorData)
+        }
+      }
+      
+      alert(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -130,24 +163,22 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
 
   const filteredCosts = costs.filter(
     (c) =>
-      c.product?.name?.toLowerCase().includes(filter.toLowerCase()) ||
+      c.product_name?.toLowerCase().includes(filter.toLowerCase()) ||
       c.description.toLowerCase().includes(filter.toLowerCase()),
   )
 
   const costTypeLabels: Record<string, string> = {
-    materia_prima: "Matéria Prima",
-    mao_de_obra: "Mão de Obra",
+    material: "Material",
+    mao_obra: "Mão de Obra",
     energia: "Energia",
-    embalagem: "Embalagem",
     transporte: "Transporte",
     outros: "Outros",
   }
 
   const costTypeColors: Record<string, "green" | "yellow" | "cyan" | "orange" | "red" | "white"> = {
-    materia_prima: "green",
-    mao_de_obra: "cyan",
+    material: "green",
+    mao_obra: "cyan",
     energia: "yellow",
-    embalagem: "orange",
     transporte: "red",
     outros: "white",
   }
@@ -186,7 +217,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
             {
               key: "product",
               header: "Produto",
-              render: (item) => (item.product ? `${item.product.code} - ${item.product.name}` : "-"),
+              render: (item) => item.product_name || "-",
             },
             { key: "description", header: "Descrição" },
             {
@@ -258,10 +289,9 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
                       value={formData.cost_type}
                       onChange={(e) => setFormData({ ...formData, cost_type: e.target.value })}
                     >
-                      <option value="materia_prima">Matéria Prima</option>
-                      <option value="mao_de_obra">Mão de Obra</option>
+                      <option value="material">Material</option>
+                      <option value="mao_obra">Mão de Obra</option>
                       <option value="energia">Energia</option>
-                      <option value="embalagem">Embalagem</option>
                       <option value="transporte">Transporte</option>
                       <option value="outros">Outros</option>
                     </select>

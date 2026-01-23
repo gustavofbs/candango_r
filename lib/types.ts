@@ -57,14 +57,14 @@ export interface Supplier {
 
 export interface ProductionCost {
   id: number
-  product_id: number
+  product: number
+  product_name?: string
   description: string
   cost_type: string
   value: number
   date: string
   notes: string | null
   created_at: string
-  product?: Product
 }
 
 export interface Sale {
@@ -96,7 +96,9 @@ export interface SaleItem {
 
 export interface StockMovement {
   id: number
-  product_id: number
+  product: number
+  product_name?: string
+  product_code?: string
   movement_type: string
   quantity: number
   unit_price: number | null
@@ -105,5 +107,4 @@ export interface StockMovement {
   reference_id: number | null
   notes: string | null
   created_at: string
-  product?: Product
 }

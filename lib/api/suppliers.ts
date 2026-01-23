@@ -3,8 +3,15 @@ import type { Supplier } from "@/lib/types"
 
 export const suppliersApi = {
   getAll: async () => {
-    const response = await apiClient.get<Supplier[]>("/suppliers/")
-    return response.data
+    const response = await apiClient.get<any>("/suppliers/")
+    console.log("suppliersApi.getAll - response.data:", response.data)
+    console.log("suppliersApi.getAll - tem results?", 'results' in response.data)
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      console.log("suppliersApi.getAll - retornando results:", response.data.results)
+      return response.data.results as Supplier[]
+    }
+    console.log("suppliersApi.getAll - retornando array direto ou vazio")
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {
