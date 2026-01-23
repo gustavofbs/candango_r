@@ -23,11 +23,7 @@ export function SuppliersContent({ initialSuppliers }: SuppliersContentProps) {
   const refreshSuppliers = async () => {
     try {
       const data = await suppliersApi.getAll()
-      console.log("Dados recebidos (já processados):", data)
-      console.log("Quantidade:", data.length)
-      const suppliersArray = Array.isArray(data) ? data : []
-      console.log("Atualizando estado com:", suppliersArray.length, "fornecedores")
-      setSuppliers(suppliersArray)
+      setSuppliers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erro ao atualizar fornecedores:", error)
     }

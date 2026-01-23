@@ -70,7 +70,8 @@ export interface ProductionCost {
 export interface Sale {
   id: number
   sale_number: string
-  customer_id: number | null
+  customer: number | null
+  customer_name?: string | null
   sale_date: string
   total_amount: number
   discount: number
@@ -79,7 +80,6 @@ export interface Sale {
   status: string
   notes: string | null
   created_at: string
-  customer?: Customer
   items?: SaleItem[]
 }
 

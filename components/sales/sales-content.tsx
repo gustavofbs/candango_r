@@ -103,7 +103,7 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
             {
               key: "customer",
               header: "Cliente",
-              render: (item) => item.customer?.name || "Cliente não informado",
+              render: (item) => item.customer_name || "Cliente não informado",
             },
             {
               key: "total_amount",
