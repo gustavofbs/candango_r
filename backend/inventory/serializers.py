@@ -63,9 +63,10 @@ class SaleItemSerializer(serializers.ModelSerializer):
         model = SaleItem
         fields = [
             'id', 'product', 'product_name', 'product_code',
-            'quantity', 'unit_price', 'discount', 'total_price'
+            'quantity', 'unit_price', 'unit_cost', 'discount', 
+            'tax', 'freight', 'total_price', 'total_cost', 'profit'
         ]
-        read_only_fields = ['id', 'total_price']
+        read_only_fields = ['id', 'total_price', 'total_cost', 'profit']
 
 
 class SaleSerializer(serializers.ModelSerializer):

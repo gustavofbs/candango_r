@@ -261,6 +261,13 @@ class SaleItem(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Preço Unitário'
     )
+    unit_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Custo Unitário'
+    )
     discount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -268,11 +275,38 @@ class SaleItem(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Desconto'
     )
+    tax = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Imposto'
+    )
+    freight = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Frete'
+    )
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Preço Total'
+    )
+    total_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Custo Total'
+    )
+    profit = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Lucro'
     )
 
     class Meta:
@@ -283,7 +317,12 @@ class SaleItem(models.Model):
         return f'{self.sale.sale_number} - {self.product.name}'
 
     def save(self, *args, **kwargs):
+        # Calcula preço total
         self.total_price = (self.quantity * self.unit_price) - self.discount
+        # Calcula custo total
+        self.total_cost = self.quantity * self.unit_cost
+        # Calcula lucro: (preço total - custo total - imposto - frete)
+        self.profit = self.total_price - self.total_cost - self.tax - self.freight
         super().save(*args, **kwargs)
 
 

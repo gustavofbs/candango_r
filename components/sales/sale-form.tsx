@@ -14,7 +14,10 @@ interface SaleItem {
   product_name: string
   quantity: number
   unit_price: number
+  unit_cost: number
   discount: number
+  tax: number
+  freight: number
   total_price: number
 }
 
@@ -41,6 +44,9 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     product_id: "",
     quantity: 1,
     discount: 0,
+    unit_cost: 0,
+    tax: 0,
+    freight: 0,
   })
   const [saving, setSaving] = useState(false)
 
@@ -58,12 +64,15 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
         product_name: product.name,
         quantity: newItem.quantity,
         unit_price: unitPrice,
+        unit_cost: newItem.unit_cost,
         discount: newItem.discount,
+        tax: newItem.tax,
+        freight: newItem.freight,
         total_price: totalPrice,
       },
     ])
 
-    setNewItem({ product_id: "", quantity: 1, discount: 0 })
+    setNewItem({ product_id: "", quantity: 1, discount: 0, unit_cost: 0, tax: 0, freight: 0 })
   }
 
   const removeItem = (index: number) => {
@@ -99,7 +108,10 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
         product: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        unit_cost: item.unit_cost,
         discount: item.discount,
+        tax: item.tax,
+        freight: item.freight,
       })),
     })
 
@@ -197,6 +209,36 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
                 />
               </FormField>
+              <FormField label="Custo Unit.:" inline>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="erp-input w-24"
+                  value={newItem.unit_cost}
+                  onChange={(e) => setNewItem({ ...newItem, unit_cost: Number(e.target.value) })}
+                />
+              </FormField>
+              <FormField label="Imposto:" inline>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="erp-input w-24"
+                  value={newItem.tax}
+                  onChange={(e) => setNewItem({ ...newItem, tax: Number(e.target.value) })}
+                />
+              </FormField>
+              <FormField label="Frete:" inline>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="erp-input w-24"
+                  value={newItem.freight}
+                  onChange={(e) => setNewItem({ ...newItem, freight: Number(e.target.value) })}
+                />
+              </FormField>
               <button type="button" className="erp-button" onClick={addItem} disabled={!newItem.product_id}>
                 ➕ Adicionar
               </button>
@@ -208,22 +250,46 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
           <DataGrid
             columns={[
               { key: "product_name", header: "Produto" },
-              { key: "quantity", header: "Qtd", width: "60px", align: "right" },
+              { key: "quantity", header: "Qtd", width: "50px", align: "right" },
               {
                 key: "unit_price",
                 header: "Preço Unit.",
+                width: "90px",
                 align: "right",
                 render: (item) => `R$ ${item.unit_price.toFixed(2)}`,
               },
               {
+                key: "unit_cost",
+                header: "Custo Unit.",
+                width: "90px",
+                align: "right",
+                render: (item) => `R$ ${item.unit_cost.toFixed(2)}`,
+              },
+              {
                 key: "discount",
-                header: "Desconto",
+                header: "Desc.",
+                width: "70px",
                 align: "right",
                 render: (item) => `R$ ${item.discount.toFixed(2)}`,
               },
               {
+                key: "tax",
+                header: "Imposto",
+                width: "80px",
+                align: "right",
+                render: (item) => `R$ ${item.tax.toFixed(2)}`,
+              },
+              {
+                key: "freight",
+                header: "Frete",
+                width: "70px",
+                align: "right",
+                render: (item) => `R$ ${item.freight.toFixed(2)}`,
+              },
+              {
                 key: "total_price",
                 header: "Total",
+                width: "90px",
                 align: "right",
                 render: (item) => `R$ ${item.total_price.toFixed(2)}`,
               },

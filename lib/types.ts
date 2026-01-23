@@ -85,13 +85,19 @@ export interface Sale {
 
 export interface SaleItem {
   id: number
-  sale_id: number
-  product_id: number
+  sale_id?: number
+  product: number
+  product_name?: string
+  product_code?: string
   quantity: number
   unit_price: number
+  unit_cost: number
   discount: number
+  tax: number
+  freight: number
   total_price: number
-  product?: Product
+  total_cost: number
+  profit: number
 }
 
 export interface StockMovement {

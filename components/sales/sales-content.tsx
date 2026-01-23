@@ -6,6 +6,7 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { SaleForm } from "@/components/sales/sale-form"
+import { MonthlySummary } from "@/components/sales/monthly-summary"
 import type { Sale, Customer, Product } from "@/lib/types"
 import { salesApi } from "@/lib/api"
 
@@ -20,6 +21,7 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
+  const [showMonthlySummary, setShowMonthlySummary] = useState(false)
   const [filter, setFilter] = useState("")
 
   const refreshSales = async () => {
@@ -71,14 +73,18 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
 
   return (
     <div className="space-y-2">
-      <ErpWindow title="Gestão de Vendas">
-        <Toolbar
-          buttons={[
-            { label: "Nova Venda", icon: "➕", onClick: handleNew },
-            { label: "Excluir", icon: "🗑️", onClick: handleDelete, disabled: !selectedSale },
-            { label: "Atualizar", icon: "🔄", onClick: refreshSales },
-          ]}
-        />
+      {showMonthlySummary ? (
+        <MonthlySummary sales={sales} />
+      ) : (
+        <ErpWindow title="Gestão de Vendas">
+          <Toolbar
+            buttons={[
+              { label: "Nova Venda", icon: "➕", onClick: handleNew },
+              { label: "Excluir", icon: "🗑️", onClick: handleDelete, disabled: !selectedSale },
+              { label: "Atualizar", icon: "🔄", onClick: refreshSales },
+              { label: "Resumo Mensal", icon: "📊", onClick: () => setShowMonthlySummary(true) },
+            ]}
+          />
 
         <div className="flex gap-2 mb-2">
           <label className="text-[11px]">Filtrar:</label>
@@ -144,11 +150,20 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
           }}
         />
 
-        <div className="mt-2 text-[11px] erp-inset p-1">
-          Total de vendas: {filteredSales.length} | Valor Total: R${" "}
-          {filteredSales.reduce((acc, s) => acc + Number(s.final_amount), 0).toFixed(2)}
+          <div className="mt-2 text-[11px] erp-inset p-1">
+            Total de vendas: {filteredSales.length} | Valor Total: R${" "}
+            {filteredSales.reduce((acc, s) => acc + Number(s.final_amount), 0).toFixed(2)}
+          </div>
+        </ErpWindow>
+      )}
+
+      {showMonthlySummary && (
+        <div className="flex justify-end mt-2">
+          <button className="erp-button" onClick={() => setShowMonthlySummary(false)}>
+            ← Voltar para Lista
+          </button>
         </div>
-      </ErpWindow>
+      )}
 
       {showForm && (
         <SaleForm customers={customers} products={products} onSave={handleSave} onCancel={() => setShowForm(false)} />
