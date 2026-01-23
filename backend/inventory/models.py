@@ -133,11 +133,15 @@ class Supplier(models.Model):
 
 class ProductionCost(models.Model):
     COST_TYPE_CHOICES = [
-        ('material', 'Material'),
-        ('mao_obra', 'Mão de Obra'),
-        ('energia', 'Energia'),
-        ('transporte', 'Transporte'),
-        ('outros', 'Outros'),
+        ('aviamentos', 'Aviamentos'),
+        ('corte_tecido', 'Corte do tecido'),
+        ('costura', 'Costura'),
+        ('dtf', 'DTF'),
+        ('embalagem', 'Embalagem'),
+        ('etiqueta', 'Etiqueta'),
+        ('silk', 'Silk'),
+        ('sublimacao', 'Sublimação'),
+        ('tipo_tecido', 'Tipo de tecido'),
     ]
 
     product = models.ForeignKey(
@@ -156,22 +160,67 @@ class ProductionCost(models.Model):
     )
     date = models.DateField(verbose_name='Data')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
+    
+    # Campos de refinamento
+    refinement_code = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Código de Refinamento',
+        help_text='Código único que agrupa custos do mesmo refinamento'
+    )
+    refinement_name = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Nome do Refinamento',
+        help_text='Nome descritivo do refinamento'
+    )
+    
+    # Campos de travamento
+    is_locked = models.BooleanField(
+        default=False,
+        verbose_name='Travado',
+        help_text='Indica se este custo foi usado em uma venda liquidada'
+    )
+    locked_by_sale = models.ForeignKey(
+        'Sale',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='locked_costs',
+        verbose_name='Venda que Travou'
+    )
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Travado em'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
 
     class Meta:
         verbose_name = 'Custo de Produção'
         verbose_name_plural = 'Custos de Produção'
         ordering = ['-date']
+        indexes = [
+            models.Index(fields=['refinement_code']),
+            models.Index(fields=['is_locked']),
+        ]
 
     def __str__(self):
+        if self.refinement_code:
+            return f'{self.refinement_code} - {self.product.name} - {self.get_cost_type_display()} - R$ {self.value}'
         return f'{self.product.name} - {self.description} - R$ {self.value}'
 
 
 class Sale(models.Model):
     STATUS_CHOICES = [
-        ('pendente', 'Pendente'),
-        ('concluida', 'Concluída'),
-        ('cancelada', 'Cancelada'),
+        ('disputa', 'Disputa'),
+        ('homologado', 'Homologado'),
+        ('producao', 'Produção'),
+        ('aguardando_pagamento', 'Aguardando Pagamento'),
+        ('liquidado', 'Liquidado'),
     ]
 
     PAYMENT_METHOD_CHOICES = [
@@ -267,6 +316,24 @@ class SaleItem(models.Model):
         default=0,
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Custo Unitário'
+    )
+    cost_refinement_code = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Código de Refinamento de Custo',
+        help_text='Código do refinamento de custo usado neste item'
+    )
+    cost_snapshot = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name='Snapshot do Custo',
+        help_text='Detalhamento dos custos no momento da venda'
+    )
+    cost_calculated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Custo Calculado em'
     )
     discount = models.DecimalField(
         max_digits=10,

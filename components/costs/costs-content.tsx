@@ -8,6 +8,7 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
+import { RefinementForm } from "@/components/costs/refinement-form"
 import type { ProductionCost, Product } from "@/lib/types"
 import { costsApi } from "@/lib/api"
 
@@ -21,6 +22,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
   const [selectedCost, setSelectedCost] = useState<ProductionCost | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
+  const [showRefinementForm, setShowRefinementForm] = useState(false)
   const [filter, setFilter] = useState("")
   const [formData, setFormData] = useState({
     product_id: "",
@@ -183,14 +185,20 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     outros: "white",
   }
 
+  const handleSaveRefinement = async () => {
+    setShowRefinementForm(false)
+    await refreshCosts()
+  }
+
   return (
     <div className="space-y-2">
       <ErpWindow title="Custos de Produção">
         <Toolbar
           buttons={[
-            { label: "Novo", icon: "➕", onClick: handleNew },
-            { label: "Editar", icon: "✏️", onClick: handleEdit, disabled: !selectedCost },
-            { label: "Excluir", icon: "🗑️", onClick: handleDelete, disabled: !selectedCost },
+            { label: "Novo Refinamento", icon: "📦", onClick: () => setShowRefinementForm(true) },
+            { label: "Novo Custo", icon: "➕", onClick: handleNew },
+            { label: "Editar", icon: "✏️", onClick: handleEdit, disabled: !selectedCost || selectedCost.is_locked },
+            { label: "Excluir", icon: "🗑️", onClick: handleDelete, disabled: !selectedCost || selectedCost.is_locked },
             { label: "Atualizar", icon: "🔄", onClick: refreshCosts },
           ]}
         />
@@ -340,6 +348,14 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
             </div>
           </form>
         </ErpWindow>
+      )}
+
+      {showRefinementForm && (
+        <RefinementForm
+          products={products}
+          onSave={handleSaveRefinement}
+          onCancel={() => setShowRefinementForm(false)}
+        />
       )}
     </div>
   )

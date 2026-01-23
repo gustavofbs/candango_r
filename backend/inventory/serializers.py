@@ -45,14 +45,19 @@ class SupplierSerializer(serializers.ModelSerializer):
 
 class ProductionCostSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
+    product_code = serializers.CharField(source='product.code', read_only=True)
+    locked_by_sale_number = serializers.CharField(source='locked_by_sale.sale_number', read_only=True, allow_null=True)
+    cost_type_display = serializers.CharField(source='get_cost_type_display', read_only=True)
     
     class Meta:
         model = ProductionCost
         fields = [
-            'id', 'product', 'product_name', 'description', 'cost_type',
-            'value', 'date', 'notes', 'created_at'
+            'id', 'product', 'product_name', 'product_code', 'description', 
+            'cost_type', 'cost_type_display', 'value', 'date', 'notes',
+            'refinement_code', 'refinement_name', 'is_locked', 
+            'locked_by_sale', 'locked_by_sale_number', 'locked_at', 'created_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'is_locked', 'locked_by_sale', 'locked_at']
 
 
 class SaleItemSerializer(serializers.ModelSerializer):
@@ -63,10 +68,11 @@ class SaleItemSerializer(serializers.ModelSerializer):
         model = SaleItem
         fields = [
             'id', 'product', 'product_name', 'product_code',
-            'quantity', 'unit_price', 'unit_cost', 'discount', 
+            'quantity', 'unit_price', 'unit_cost', 'cost_refinement_code',
+            'cost_snapshot', 'cost_calculated_at', 'discount', 
             'tax', 'freight', 'total_price', 'total_cost', 'profit'
         ]
-        read_only_fields = ['id', 'total_price', 'total_cost', 'profit']
+        read_only_fields = ['id', 'total_price', 'total_cost', 'profit', 'cost_calculated_at']
 
 
 class SaleSerializer(serializers.ModelSerializer):

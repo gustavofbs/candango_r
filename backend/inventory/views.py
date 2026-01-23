@@ -99,7 +99,7 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
     queryset = ProductionCost.objects.select_related('product').all()
     serializer_class = ProductionCostSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['description', 'product__name']
+    search_fields = ['description', 'product__name', 'refinement_code', 'refinement_name']
     ordering_fields = ['date', 'value', 'created_at']
     ordering = ['-date']
     
@@ -114,7 +114,60 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
         if cost_type:
             queryset = queryset.filter(cost_type=cost_type)
         
+        refinement_code = self.request.query_params.get('refinement_code', None)
+        if refinement_code:
+            queryset = queryset.filter(refinement_code=refinement_code)
+        
+        is_locked = self.request.query_params.get('is_locked', None)
+        if is_locked is not None:
+            queryset = queryset.filter(is_locked=is_locked.lower() == 'true')
+        
         return queryset
+    
+    @action(detail=False, methods=['get'])
+    def refinements(self, request):
+        """
+        Lista refinamentos de custo agrupados por código
+        """
+        product_id = request.query_params.get('product', None)
+        include_locked = request.query_params.get('include_locked', 'false').lower() == 'true'
+        
+        queryset = self.get_queryset()
+        
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        
+        if not include_locked:
+            queryset = queryset.filter(is_locked=False)
+        
+        # Agrupa por refinement_code
+        refinements = {}
+        for cost in queryset.filter(refinement_code__isnull=False).select_related('product', 'locked_by_sale'):
+            code = cost.refinement_code
+            if code not in refinements:
+                refinements[code] = {
+                    'refinement_code': code,
+                    'refinement_name': cost.refinement_name,
+                    'product_id': cost.product.id,
+                    'product_name': cost.product.name,
+                    'product_code': cost.product.code,
+                    'is_locked': cost.is_locked,
+                    'locked_by_sale_number': cost.locked_by_sale.sale_number if cost.locked_by_sale else None,
+                    'locked_at': cost.locked_at,
+                    'costs': [],
+                    'total': 0
+                }
+            
+            refinements[code]['costs'].append({
+                'id': cost.id,
+                'cost_type': cost.cost_type,
+                'cost_type_display': cost.get_cost_type_display(),
+                'value': float(cost.value),
+                'description': cost.description,
+            })
+            refinements[code]['total'] += float(cost.value)
+        
+        return Response(list(refinements.values()))
 
 
 class SaleViewSet(viewsets.ModelViewSet):

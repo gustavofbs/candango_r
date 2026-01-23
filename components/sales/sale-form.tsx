@@ -2,12 +2,12 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import { DataGrid } from "@/components/erp/data-grid"
-import type { Customer, Product } from "@/lib/types"
-import { salesApi, productsApi } from "@/lib/api"
+import type { Customer, Product, CostRefinement } from "@/lib/types"
+import { salesApi, productsApi, costsApi } from "@/lib/api"
 
 interface SaleItem {
   product_id: number
@@ -15,6 +15,7 @@ interface SaleItem {
   quantity: number
   unit_price: number
   unit_cost: number
+  cost_refinement_code?: string
   discount: number
   tax: number
   freight: number
@@ -35,7 +36,7 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     customer_id: "",
     sale_date: new Date().toISOString().split("T")[0],
     payment_method: "dinheiro",
-    status: "concluida",
+    status: "disputa",
     notes: "",
     discount: 0,
   })
@@ -44,15 +45,42 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     product_id: "",
     quantity: 1,
     discount: 0,
-    unit_cost: 0,
+    cost_refinement_code: "",
     tax: 0,
     freight: 0,
   })
+  const [refinements, setRefinements] = useState<CostRefinement[]>([])
+  const [loadingRefinements, setLoadingRefinements] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Busca refinamentos quando produto é selecionado
+  useEffect(() => {
+    const fetchRefinements = async () => {
+      if (newItem.product_id) {
+        setLoadingRefinements(true)
+        try {
+          const data = await costsApi.getRefinements(Number(newItem.product_id), false)
+          setRefinements(data)
+        } catch (error) {
+          console.error("Erro ao buscar refinamentos:", error)
+          setRefinements([])
+        } finally {
+          setLoadingRefinements(false)
+        }
+      } else {
+        setRefinements([])
+      }
+    }
+    fetchRefinements()
+  }, [newItem.product_id])
 
   const addItem = () => {
     const product = safeProducts.find((p) => p.id === Number(newItem.product_id))
     if (!product) return
+
+    // Busca o refinamento selecionado para pegar o custo
+    const selectedRefinement = refinements.find((r: any) => r.refinement_code === newItem.cost_refinement_code)
+    const unitCost = selectedRefinement ? Number(selectedRefinement.total) : 0
 
     const unitPrice = Number(product.sale_price)
     const totalPrice = unitPrice * newItem.quantity - newItem.discount
@@ -64,7 +92,8 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
         product_name: product.name,
         quantity: newItem.quantity,
         unit_price: unitPrice,
-        unit_cost: newItem.unit_cost,
+        unit_cost: unitCost,
+        cost_refinement_code: newItem.cost_refinement_code || undefined,
         discount: newItem.discount,
         tax: newItem.tax,
         freight: newItem.freight,
@@ -72,7 +101,8 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
       },
     ])
 
-    setNewItem({ product_id: "", quantity: 1, discount: 0, unit_cost: 0, tax: 0, freight: 0 })
+    setNewItem({ product_id: "", quantity: 1, discount: 0, cost_refinement_code: "", tax: 0, freight: 0 })
+    setRefinements([])
   }
 
   const removeItem = (index: number) => {
@@ -91,32 +121,53 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
 
     setSaving(true)
 
-    // Generate sale number
-    const saleNumber = `VND${Date.now().toString().slice(-8)}`
+    try {
+      // Generate sale number
+      const saleNumber = `VND${Date.now().toString().slice(-8)}`
 
-    // Create sale with items (API will handle stock movements automatically)
-    await salesApi.create({
-      sale_number: saleNumber,
-      customer: formData.customer_id ? Number(formData.customer_id) : null,
-      sale_date: formData.sale_date,
-      total_amount: totalAmount,
-      discount: formData.discount,
-      payment_method: formData.payment_method,
-      status: "concluida",
-      notes: formData.notes,
-      items: items.map(item => ({
-        product: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        unit_cost: item.unit_cost,
-        discount: item.discount,
-        tax: item.tax,
-        freight: item.freight,
-      })),
-    })
+      // Prepara os dados da venda
+      const saleData = {
+        sale_number: saleNumber,
+        customer: formData.customer_id ? Number(formData.customer_id) : null,
+        sale_date: formData.sale_date,
+        total_amount: Number(totalAmount.toFixed(2)),
+        discount: Number(formData.discount.toFixed(2)),
+        payment_method: formData.payment_method,
+        status: formData.status,
+        notes: formData.notes,
+        items: items.map(item => ({
+          product: item.product_id,
+          quantity: Number(item.quantity.toFixed(2)),
+          unit_price: Number(item.unit_price.toFixed(2)),
+          unit_cost: Number(item.unit_cost.toFixed(2)),
+          cost_refinement_code: item.cost_refinement_code || null,
+          discount: Number(item.discount.toFixed(2)),
+          tax: Number(item.tax.toFixed(2)),
+          freight: Number(item.freight.toFixed(2)),
+        })),
+      }
 
-    setSaving(false)
-    onSave()
+      console.log("Dados da venda:", JSON.stringify(saleData, null, 2))
+
+      // Create sale with items (API will handle stock movements automatically)
+      await salesApi.create(saleData)
+
+      setSaving(false)
+      onSave()
+    } catch (error: any) {
+      setSaving(false)
+      console.error("Erro ao criar venda:", error)
+      
+      // Mostra mensagem de erro detalhada
+      let errorMessage = "Erro ao criar venda"
+      if (error.response?.data) {
+        errorMessage = JSON.stringify(error.response.data, null, 2)
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      alert(`Erro ao criar venda:\n\n${errorMessage}`)
+    }
   }
 
   return (
@@ -166,9 +217,11 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 >
-                  <option value="concluida">Concluída</option>
-                  <option value="pendente">Pendente</option>
-                  <option value="cancelada">Cancelada</option>
+                  <option value="disputa">Disputa</option>
+                  <option value="homologado">Homologado</option>
+                  <option value="producao">Produção</option>
+                  <option value="aguardando_pagamento">Aguardando Pagamento</option>
+                  <option value="liquidado">Liquidado</option>
                 </select>
               </FormField>
             </div>
@@ -209,15 +262,23 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
                 />
               </FormField>
-              <FormField label="Custo Unit.:" inline>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="erp-input w-24"
-                  value={newItem.unit_cost}
-                  onChange={(e) => setNewItem({ ...newItem, unit_cost: Number(e.target.value) })}
-                />
+              <FormField label="Refinamento:" inline>
+                <select
+                  className="erp-select w-full"
+                  value={newItem.cost_refinement_code}
+                  onChange={(e) => setNewItem({ ...newItem, cost_refinement_code: e.target.value })}
+                  disabled={!newItem.product_id || loadingRefinements}
+                >
+                  <option value="">
+                    {loadingRefinements ? "Carregando..." : !newItem.product_id ? "Selecione um produto primeiro" : "Nenhum refinamento"}
+                  </option>
+                  {refinements.map((ref) => (
+                    <option key={ref.refinement_code} value={ref.refinement_code}>
+                      {ref.refinement_code} - {ref.refinement_name} (R$ {ref.total.toFixed(2)})
+                      {ref.is_locked && ` 🔒 Usado em ${ref.locked_by_sale_number}`}
+                    </option>
+                  ))}
+                </select>
               </FormField>
               <FormField label="Imposto:" inline>
                 <input

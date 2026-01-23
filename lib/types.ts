@@ -59,12 +59,39 @@ export interface ProductionCost {
   id: number
   product: number
   product_name?: string
+  product_code?: string
   description: string
   cost_type: string
+  cost_type_display?: string
   value: number
   date: string
   notes: string | null
+  refinement_code?: string | null
+  refinement_name?: string | null
+  is_locked: boolean
+  locked_by_sale?: number | null
+  locked_by_sale_number?: string | null
+  locked_at?: string | null
   created_at: string
+}
+
+export interface CostRefinement {
+  refinement_code: string
+  refinement_name: string
+  product_id: number
+  product_name: string
+  product_code: string
+  is_locked: boolean
+  locked_by_sale_number?: string | null
+  locked_at?: string | null
+  costs: {
+    id: number
+    cost_type: string
+    cost_type_display: string
+    value: number
+    description: string
+  }[]
+  total: number
 }
 
 export interface Sale {
@@ -92,6 +119,9 @@ export interface SaleItem {
   quantity: number
   unit_price: number
   unit_cost: number
+  cost_refinement_code?: string | null
+  cost_snapshot?: any
+  cost_calculated_at?: string | null
   discount: number
   tax: number
   freight: number

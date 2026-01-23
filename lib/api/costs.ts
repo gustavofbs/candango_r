@@ -1,5 +1,5 @@
 import apiClient from "./client"
-import type { ProductionCost } from "@/lib/types"
+import type { ProductionCost, CostRefinement } from "@/lib/types"
 
 export const costsApi = {
   getAll: async () => {
@@ -12,6 +12,17 @@ export const costsApi = {
 
   getById: async (id: number) => {
     const response = await apiClient.get<ProductionCost>(`/production-costs/${id}/`)
+    return response.data
+  },
+
+  getRefinements: async (productId?: number, includeLocked: boolean = false) => {
+    const params = new URLSearchParams()
+    if (productId) params.append('product', productId.toString())
+    if (includeLocked) params.append('include_locked', 'true')
+    
+    const response = await apiClient.get<CostRefinement[]>(
+      `/production-costs/refinements/?${params.toString()}`
+    )
     return response.data
   },
 
