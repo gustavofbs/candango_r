@@ -3,8 +3,11 @@ import type { Sale } from "@/lib/types"
 
 export const salesApi = {
   getAll: async () => {
-    const response = await apiClient.get<Sale[]>("/sales/")
-    return response.data
+    const response = await apiClient.get<any>("/sales/")
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      return response.data.results as Sale[]
+    }
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {

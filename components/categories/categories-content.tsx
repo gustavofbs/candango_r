@@ -21,6 +21,8 @@ export function CategoriesContent({ initialCategories }: CategoriesContentProps)
   const refreshCategories = async () => {
     try {
       const data = await categoriesApi.getAll()
+      console.log("Categorias recebidas da API:", data)
+      console.log("É array?", Array.isArray(data))
       setCategories(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erro ao atualizar categorias:", error)
@@ -58,6 +60,11 @@ export function CategoriesContent({ initialCategories }: CategoriesContentProps)
   }
 
   const handleSave = async () => {
+    if (!formData.name.trim()) {
+      alert("O nome da categoria é obrigatório")
+      return
+    }
+
     try {
       if (selectedCategory) {
         await categoriesApi.update(selectedCategory.id, formData)
@@ -68,9 +75,12 @@ export function CategoriesContent({ initialCategories }: CategoriesContentProps)
       setShowForm(false)
       setSelectedCategory(null)
       setSelectedIndex(undefined)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar categoria:", error)
-      alert("Erro ao salvar categoria")
+      const errorMessage = error?.response?.data?.name?.[0] || 
+                          error?.response?.data?.detail || 
+                          "Erro ao salvar categoria"
+      alert(errorMessage)
     }
   }
 

@@ -3,8 +3,11 @@ import type { StockMovement } from "@/lib/types"
 
 export const movementsApi = {
   getAll: async () => {
-    const response = await apiClient.get<StockMovement[]>("/stock-movements/")
-    return response.data
+    const response = await apiClient.get<any>("/stock-movements/")
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      return response.data.results as StockMovement[]
+    }
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {

@@ -3,8 +3,11 @@ import type { Product } from "@/lib/types"
 
 export const productsApi = {
   getAll: async () => {
-    const response = await apiClient.get<Product[]>("/products/")
-    return response.data
+    const response = await apiClient.get<any>("/products/")
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      return response.data.results as Product[]
+    }
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {

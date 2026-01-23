@@ -26,6 +26,8 @@ interface SaleFormProps {
 }
 
 export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProps) {
+  const safeCustomers = Array.isArray(customers) ? customers : []
+  const safeProducts = Array.isArray(products) ? products : []
   const [formData, setFormData] = useState({
     customer_id: "",
     sale_date: new Date().toISOString().split("T")[0],
@@ -43,7 +45,7 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
   const [saving, setSaving] = useState(false)
 
   const addItem = () => {
-    const product = products.find((p) => p.id === Number(newItem.product_id))
+    const product = safeProducts.find((p) => p.id === Number(newItem.product_id))
     if (!product) return
 
     const unitPrice = Number(product.sale_price)
@@ -118,7 +120,7 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
                 >
                   <option value="">Selecione...</option>
-                  {customers.map((c) => (
+                  {safeCustomers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -169,7 +171,7 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   onChange={(e) => setNewItem({ ...newItem, product_id: e.target.value })}
                 >
                   <option value="">Selecione...</option>
-                  {products.map((p) => (
+                  {safeProducts.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.code} - {p.name} (Est: {p.current_stock}) - R$ {Number(p.sale_price).toFixed(2)}
                     </option>

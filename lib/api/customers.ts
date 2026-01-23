@@ -3,8 +3,11 @@ import type { Customer } from "@/lib/types"
 
 export const customersApi = {
   getAll: async () => {
-    const response = await apiClient.get<Customer[]>("/customers/")
-    return response.data
+    const response = await apiClient.get<any>("/customers/")
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      return response.data.results as Customer[]
+    }
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {

@@ -3,8 +3,11 @@ import type { ProductionCost } from "@/lib/types"
 
 export const costsApi = {
   getAll: async () => {
-    const response = await apiClient.get<ProductionCost[]>("/production-costs/")
-    return response.data
+    const response = await apiClient.get<any>("/production-costs/")
+    if (response.data && typeof response.data === 'object' && 'results' in response.data) {
+      return response.data.results as ProductionCost[]
+    }
+    return Array.isArray(response.data) ? response.data : []
   },
 
   getById: async (id: number) => {

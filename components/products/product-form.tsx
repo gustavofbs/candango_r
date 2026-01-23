@@ -16,6 +16,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, categories, onSave, onCancel }: ProductFormProps) {
+  const safeCategories = Array.isArray(categories) ? categories : []
   const [formData, setFormData] = useState({
     code: product?.code || "",
     name: product?.name || "",
@@ -101,7 +102,7 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   onChange={(e) => setFormData({ ...formData, category: e.target.value ? Number(e.target.value) : null })}
                 >
                   <option value="">Selecione...</option>
-                  {categories.map((cat) => (
+                  {safeCategories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
