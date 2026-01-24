@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import { DataGrid } from "@/components/erp/data-grid"
-import type { Customer, Product, CostRefinement } from "@/lib/types"
+import type { Customer, Product, CostRefinement, Sale } from "@/lib/types"
 import { salesApi, productsApi, costsApi } from "@/lib/api"
 
 interface SaleItem {
@@ -25,22 +25,42 @@ interface SaleItem {
 interface SaleFormProps {
   customers: Customer[]
   products: Product[]
+  sale?: Sale | null
   onSave: () => void
   onCancel: () => void
 }
 
-export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProps) {
+export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFormProps) {
   const safeCustomers = Array.isArray(customers) ? customers : []
   const safeProducts = Array.isArray(products) ? products : []
   const [formData, setFormData] = useState({
-    customer_id: "",
-    sale_date: new Date().toISOString().split("T")[0],
-    payment_method: "dinheiro",
-    status: "disputa",
-    notes: "",
-    discount: 0,
+    customer_id: sale?.customer?.toString() || "",
+    sale_date: sale?.sale_date || new Date().toISOString().split("T")[0],
+    sale_type: sale?.sale_type || "venda",
+    payment_method: sale?.payment_method || "dinheiro",
+    nf: sale?.nf || "",
+    tax_percentage: sale?.tax_percentage || 0,
+    status: sale?.status || "disputa",
+    notes: sale?.notes || "",
+    discount: sale?.discount || 0,
   })
-  const [items, setItems] = useState<SaleItem[]>([])
+  const [items, setItems] = useState<SaleItem[]>(
+    sale?.items?.map(item => {
+      const itemTotal = (item.quantity * item.unit_price) - item.discount + item.tax + item.freight
+      return {
+        product_id: item.product,
+        product_name: item.product_name || "",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        unit_cost: item.unit_cost,
+        cost_refinement_code: item.cost_refinement_code,
+        discount: item.discount,
+        tax: item.tax,
+        freight: item.freight,
+        total_price: itemTotal,
+      }
+    }) || []
+  )
   const [newItem, setNewItem] = useState({
     product_id: "",
     quantity: 1,
@@ -52,6 +72,43 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
   const [refinements, setRefinements] = useState<CostRefinement[]>([])
   const [loadingRefinements, setLoadingRefinements] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Recarrega dados quando a venda mudar
+  useEffect(() => {
+    if (sale) {
+      setFormData({
+        customer_id: sale.customer?.toString() || "",
+        sale_date: sale.sale_date || new Date().toISOString().split("T")[0],
+        sale_type: sale.sale_type || "venda",
+        payment_method: sale.payment_method || "dinheiro",
+        nf: sale.nf || "",
+        tax_percentage: sale.tax_percentage || 0,
+        status: sale.status || "disputa",
+        notes: sale.notes || "",
+        discount: sale.discount || 0,
+      })
+      
+      if (sale.items && sale.items.length > 0) {
+        const loadedItems = sale.items.map(item => {
+          const itemTotal = (Number(item.quantity) * Number(item.unit_price)) - Number(item.discount) + Number(item.tax) + Number(item.freight)
+          return {
+            product_id: item.product,
+            product_name: item.product_name || "",
+            quantity: Number(item.quantity),
+            unit_price: Number(item.unit_price),
+            unit_cost: Number(item.unit_cost),
+            cost_refinement_code: item.cost_refinement_code,
+            discount: Number(item.discount),
+            tax: Number(item.tax),
+            freight: Number(item.freight),
+            total_price: itemTotal,
+          }
+        })
+        console.log("Loaded items:", loadedItems)
+        setItems(loadedItems)
+      }
+    }
+  }, [sale])
 
   // Busca refinamentos quando produto é selecionado
   useEffect(() => {
@@ -109,8 +166,8 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     setItems(items.filter((_, i) => i !== index))
   }
 
-  const totalAmount = items.reduce((acc, item) => acc + item.total_price, 0)
-  const finalAmount = totalAmount - formData.discount
+  const totalAmount = items.reduce((acc, item) => acc + (Number(item.total_price) || 0), 0)
+  const finalAmount = totalAmount - (Number(formData.discount) || 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,35 +179,39 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
     setSaving(true)
 
     try {
-      // Generate sale number
-      const saleNumber = `VND${Date.now().toString().slice(-8)}`
-
       // Prepara os dados da venda
       const saleData = {
-        sale_number: saleNumber,
+        sale_number: sale?.sale_number || `VND${Date.now().toString().slice(-8)}`,
+        sale_type: formData.sale_type,
         customer: formData.customer_id ? Number(formData.customer_id) : null,
         sale_date: formData.sale_date,
         total_amount: Number(totalAmount.toFixed(2)),
-        discount: Number(formData.discount.toFixed(2)),
+        discount: Number(Number(formData.discount).toFixed(2)),
         payment_method: formData.payment_method,
+        nf: formData.nf || null,
+        tax_percentage: Number(Number(formData.tax_percentage).toFixed(2)),
         status: formData.status,
         notes: formData.notes,
         items: items.map(item => ({
           product: item.product_id,
-          quantity: Number(item.quantity.toFixed(2)),
-          unit_price: Number(item.unit_price.toFixed(2)),
-          unit_cost: Number(item.unit_cost.toFixed(2)),
+          quantity: Number(Number(item.quantity).toFixed(2)),
+          unit_price: Number(Number(item.unit_price).toFixed(2)),
+          unit_cost: Number(Number(item.unit_cost).toFixed(2)),
           cost_refinement_code: item.cost_refinement_code || null,
-          discount: Number(item.discount.toFixed(2)),
-          tax: Number(item.tax.toFixed(2)),
-          freight: Number(item.freight.toFixed(2)),
+          discount: Number(Number(item.discount).toFixed(2)),
+          tax: Number(Number(item.tax).toFixed(2)),
+          freight: Number(Number(item.freight).toFixed(2)),
         })),
       }
 
       console.log("Dados da venda:", JSON.stringify(saleData, null, 2))
 
-      // Create sale with items (API will handle stock movements automatically)
-      await salesApi.create(saleData)
+      // Create or update sale
+      if (sale) {
+        await salesApi.update(sale.id, saleData)
+      } else {
+        await salesApi.create(saleData)
+      }
 
       setSaving(false)
       onSave()
@@ -198,6 +259,17 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
                 />
               </FormField>
+              <FormField label="Tipo:" inline>
+                <select
+                  className="erp-select"
+                  value={formData.sale_type}
+                  onChange={(e) => setFormData({ ...formData, sale_type: e.target.value })}
+                >
+                  <option value="venda">Venda</option>
+                  <option value="dispensa">Dispensa</option>
+                  <option value="pregao">Pregão</option>
+                </select>
+              </FormField>
               <FormField label="Pagamento:" inline>
                 <select
                   className="erp-select"
@@ -223,6 +295,26 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                   <option value="aguardando_pagamento">Aguardando Pagamento</option>
                   <option value="liquidado">Liquidado</option>
                 </select>
+              </FormField>
+              <FormField label="NF:" inline>
+                <input
+                  type="text"
+                  className="erp-input"
+                  value={formData.nf}
+                  onChange={(e) => setFormData({ ...formData, nf: e.target.value })}
+                  placeholder="Número da Nota Fiscal"
+                />
+              </FormField>
+              <FormField label="% Imposto:" inline>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="erp-input w-24"
+                  value={formData.tax_percentage}
+                  onChange={(e) => setFormData({ ...formData, tax_percentage: Number(e.target.value) })}
+                />
               </FormField>
             </div>
           </FieldGroup>
@@ -317,42 +409,42 @@ export function SaleForm({ customers, products, onSave, onCancel }: SaleFormProp
                 header: "Preço Unit.",
                 width: "90px",
                 align: "right",
-                render: (item) => `R$ ${item.unit_price.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
               },
               {
                 key: "unit_cost",
                 header: "Custo Unit.",
                 width: "90px",
                 align: "right",
-                render: (item) => `R$ ${item.unit_cost.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
               },
               {
                 key: "discount",
                 header: "Desc.",
                 width: "70px",
                 align: "right",
-                render: (item) => `R$ ${item.discount.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.discount).toFixed(2)}`,
               },
               {
                 key: "tax",
                 header: "Imposto",
                 width: "80px",
                 align: "right",
-                render: (item) => `R$ ${item.tax.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.tax).toFixed(2)}`,
               },
               {
                 key: "freight",
                 header: "Frete",
                 width: "70px",
                 align: "right",
-                render: (item) => `R$ ${item.freight.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.freight).toFixed(2)}`,
               },
               {
                 key: "total_price",
                 header: "Total",
                 width: "90px",
                 align: "right",
-                render: (item) => `R$ ${item.total_price.toFixed(2)}`,
+                render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
               },
               {
                 key: "actions",

@@ -8,13 +8,16 @@ import type { Sale } from "@/lib/types"
 
 interface MonthlySummaryProps {
   sales: Sale[]
+  selectedSaleId?: number
+  onSaleSelect?: (sale: Sale) => void
 }
 
-export function MonthlySummary({ sales }: MonthlySummaryProps) {
+export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlySummaryProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | undefined>()
 
   // Filtra vendas do mês selecionado e expande os itens
   const monthlyData = useMemo(() => {
@@ -28,36 +31,45 @@ export function MonthlySummary({ sales }: MonthlySummaryProps) {
 
     // Expande cada venda em linhas por item
     const rows: any[] = []
+    const saleMap: Record<string, Sale> = {}
+    
     filteredSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
+          // Calcula imposto baseado no percentual sobre o valor total
+          const calculatedTax = (Number(item.total_price) * Number(sale.tax_percentage || 0)) / 100
+          
+          const rowId = `${sale.id}-${item.id}`
           rows.push({
-            id: `${sale.id}-${item.id}`,
-            sale_date: sale.sale_date,
+            id: rowId,
+            sale_id: sale.id,
             sale_number: sale.sale_number,
+            sale_date: sale.sale_date,
+            customer_state: sale.customer_state || "",
+            sale_type: sale.sale_type || "venda",
             customer_name: sale.customer_name || "Cliente não informado",
-            product_code: item.product_code || "",
             product_name: item.product_name || "",
+            nf: sale.nf || "",
             quantity: item.quantity,
             unit_price: item.unit_price,
             total_price: item.total_price,
             unit_cost: item.unit_cost,
-            total_cost: item.total_cost,
-            tax: item.tax,
+            tax: calculatedTax,
             freight: item.freight,
             profit: item.profit,
             status: sale.status,
           })
+          saleMap[rowId] = sale
         })
       }
     })
 
-    return rows
+    return { rows, saleMap }
   }, [sales, selectedMonth])
 
   // Calcula totais
   const totals = useMemo(() => {
-    return monthlyData.reduce((acc, row) => ({
+    return monthlyData.rows.reduce((acc, row) => ({
       quantity: acc.quantity + Number(row.quantity),
       unit_price: acc.unit_price + Number(row.unit_price),
       total_price: acc.total_price + Number(row.total_price),
@@ -89,29 +101,40 @@ export function MonthlySummary({ sales }: MonthlySummaryProps) {
           onChange={(e) => setSelectedMonth(e.target.value)}
         />
         <span className="text-[11px] ml-4">
-          Total de itens: {monthlyData.length}
+          Total de itens: {monthlyData.rows.length}
         </span>
       </div>
 
       <DataGrid
         columns={[
+          { key: "sale_number", header: "Código", width: "100px" },
           {
             key: "sale_date",
             header: "Data",
             width: "80px",
             render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' }),
           },
-          { key: "sale_number", header: "NF", width: "80px" },
-          { key: "customer_name", header: "Cliente", width: "150px" },
-          { 
-            key: "product", 
-            header: "Produto",
-            render: (item) => item.product_code ? `${item.product_code} - ${item.product_name}` : item.product_name,
+          { key: "customer_state", header: "UF", width: "50px" },
+          {
+            key: "sale_type",
+            header: "Tipo",
+            width: "80px",
+            render: (item) => {
+              const typeMap: Record<string, string> = {
+                venda: "Venda",
+                dispensa: "Dispensa",
+                pregao: "Pregão",
+              }
+              return typeMap[item.sale_type] || item.sale_type
+            },
           },
+          { key: "customer_name", header: "Cliente", width: "150px" },
+          { key: "product_name", header: "Produto", width: "150px" },
+          { key: "nf", header: "NF", width: "100px" },
           { 
             key: "quantity", 
-            header: "Quant", 
-            width: "60px", 
+            header: "Quantidade", 
+            width: "80px", 
             align: "right",
             render: (item) => Number(item.quantity).toFixed(0),
           },
@@ -137,13 +160,6 @@ export function MonthlySummary({ sales }: MonthlySummaryProps) {
             render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
           },
           {
-            key: "total_cost",
-            header: "Custo Total",
-            width: "100px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.total_cost).toFixed(2)}`,
-          },
-          {
             key: "tax",
             header: "Imposto",
             width: "90px",
@@ -167,19 +183,35 @@ export function MonthlySummary({ sales }: MonthlySummaryProps) {
           {
             key: "status",
             header: "Status",
-            width: "90px",
-            render: (item) => (
-              <StatusBadge
-                color={item.status === "concluida" ? "green" : item.status === "pendente" ? "yellow" : "red"}
-              >
-                {item.status === "concluida" ? "Concluída" : item.status === "pendente" ? "Pendente" : "Cancelada"}
-              </StatusBadge>
-            ),
+            width: "120px",
+            render: (item) => {
+              const statusMap: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
+                disputa: { label: "Disputa", color: "red" },
+                homologado: { label: "Homologado", color: "yellow" },
+                producao: { label: "Produção", color: "cyan" },
+                aguardando_pagamento: { label: "Aguard. Pag.", color: "orange" },
+                liquidado: { label: "Liquidado", color: "green" },
+              }
+              const status = statusMap[item.status] || { label: item.status, color: "white" as const }
+              return (
+                <StatusBadge color={status.color}>
+                  {status.label}
+                </StatusBadge>
+              )
+            },
           },
         ]}
-        data={monthlyData}
-        selectedIndex={undefined}
-        onRowClick={() => {}}
+        data={monthlyData.rows}
+        selectedIndex={selectedRowIndex}
+        onRowClick={(row, index) => {
+          setSelectedRowIndex(index)
+          if (onSaleSelect) {
+            const sale = monthlyData.saleMap[row.id]
+            if (sale) {
+              onSaleSelect(sale)
+            }
+          }
+        }}
       />
 
       <div className="mt-2 text-[11px] erp-inset p-2">

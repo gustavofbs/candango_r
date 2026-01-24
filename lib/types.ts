@@ -97,13 +97,17 @@ export interface CostRefinement {
 export interface Sale {
   id: number
   sale_number: string
+  sale_type: string
   customer: number | null
   customer_name?: string | null
+  customer_state?: string | null
   sale_date: string
   total_amount: number
   discount: number
   final_amount: number
   payment_method: string | null
+  nf?: string | null
+  tax_percentage: number
   status: string
   notes: string | null
   created_at: string

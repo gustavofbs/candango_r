@@ -77,13 +77,14 @@ class SaleItemSerializer(serializers.ModelSerializer):
 
 class SaleSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.name', read_only=True, allow_null=True)
+    customer_state = serializers.CharField(source='customer.state', read_only=True, allow_null=True)
     items = SaleItemSerializer(many=True, read_only=True)
     
     class Meta:
         model = Sale
         fields = [
-            'id', 'sale_number', 'customer', 'customer_name', 'sale_date',
-            'total_amount', 'discount', 'final_amount', 'payment_method',
+            'id', 'sale_number', 'sale_type', 'customer', 'customer_name', 'customer_state', 'sale_date',
+            'total_amount', 'discount', 'final_amount', 'payment_method', 'nf', 'tax_percentage',
             'status', 'notes', 'created_at', 'items'
         ]
         read_only_fields = ['id', 'final_amount', 'created_at']
@@ -95,8 +96,8 @@ class SaleCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = [
-            'sale_number', 'customer', 'sale_date', 'total_amount',
-            'discount', 'payment_method', 'status', 'notes', 'items'
+            'sale_number', 'sale_type', 'customer', 'sale_date', 'total_amount',
+            'discount', 'payment_method', 'nf', 'tax_percentage', 'status', 'notes', 'items'
         ]
     
     def create(self, validated_data):

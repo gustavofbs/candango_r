@@ -1,5 +1,5 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 
 
@@ -232,7 +232,19 @@ class Sale(models.Model):
         ('transferencia', 'Transferência'),
     ]
 
+    SALE_TYPE_CHOICES = [
+        ('venda', 'Venda'),
+        ('dispensa', 'Dispensa'),
+        ('pregao', 'Pregão'),
+    ]
+
     sale_number = models.CharField(max_length=50, unique=True, verbose_name='Número da Venda')
+    sale_type = models.CharField(
+        max_length=20,
+        choices=SALE_TYPE_CHOICES,
+        default='venda',
+        verbose_name='Tipo de Venda'
+    )
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,
@@ -267,6 +279,21 @@ class Sale(models.Model):
         blank=True,
         null=True,
         verbose_name='Forma de Pagamento'
+    )
+    nf = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Nota Fiscal',
+        help_text='Número da Nota Fiscal'
+    )
+    tax_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00')), MaxValueValidator(Decimal('100.00'))],
+        verbose_name='Percentual de Imposto (%)',
+        help_text='Percentual de imposto aplicado sobre o valor total'
     )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente', verbose_name='Status')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
