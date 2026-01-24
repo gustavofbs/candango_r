@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { SaleForm } from "@/components/sales/sale-form"
 import { MonthlySummary } from "@/components/sales/monthly-summary"
+import { ConfirmDialog } from "@/components/erp/confirm-dialog"
 import type { Sale, Customer, Product } from "@/lib/types"
 import { salesApi } from "@/lib/api"
 
@@ -16,6 +17,7 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
   const [sales, setSales] = useState(Array.isArray(initialSales) ? initialSales : [])
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const refreshSales = async () => {
     try {
@@ -37,16 +39,23 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
     }
   }
 
-  const handleDelete = async () => {
-    if (selectedSale && confirm(`Deseja realmente excluir a venda ${selectedSale.sale_number}?`)) {
+  const handleDelete = () => {
+    if (selectedSale) {
+      setShowDeleteConfirm(true)
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (selectedSale) {
       try {
         await salesApi.delete(selectedSale.id)
         await refreshSales()
         setSelectedSale(null)
-        alert("Venda excluída com sucesso!")
+        setShowDeleteConfirm(false)
       } catch (error) {
         console.error("Erro ao excluir venda:", error)
         alert("Erro ao excluir venda")
+        setShowDeleteConfirm(false)
       }
     }
   }
@@ -106,6 +115,16 @@ export function SalesContent({ initialSales, customers, products }: SalesContent
           }} 
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="localhost:3000 diz"
+        message={`Deseja realmente excluir a venda ${selectedSale?.sale_number}?`}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        confirmText="OK"
+        cancelText="Cancelar"
+      />
     </div>
   )
 }

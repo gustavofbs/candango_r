@@ -28,4 +28,9 @@ export const salesApi = {
   delete: async (id: number) => {
     await apiClient.delete(`/sales/${id}/`)
   },
+
+  getNextNumber: async () => {
+    const response = await apiClient.get<{ next_number: string }>("/sales/next_number/")
+    return response.data.next_number
+  },
 }

@@ -29,11 +29,16 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
              saleDate.getMonth() + 1 === parseInt(month)
     })
 
+    // Ordena vendas por sale_number (crescente)
+    const sortedSales = [...filteredSales].sort((a, b) => {
+      return a.sale_number.localeCompare(b.sale_number)
+    })
+
     // Expande cada venda em linhas por item
     const rows: any[] = []
     const saleMap: Record<string, Sale> = {}
     
-    filteredSales.forEach(sale => {
+    sortedSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
           // Calcula imposto baseado no percentual sobre o valor total
@@ -118,12 +123,12 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
 
       <DataGrid
         columns={[
-          { key: "sale_number", header: "Código", width: "100px" },
+          { key: "sale_number", header: "Venda", width: "100px" },
           {
             key: "sale_date",
             header: "Data",
-            width: "80px",
-            render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' }),
+            width: "100px",
+            render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', year: 'numeric' }),
           },
           { key: "customer_state", header: "UF", width: "50px" },
           {
@@ -226,22 +231,21 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       />
 
       <div className="mt-2 text-[11px] erp-inset p-2">
-        <div className="font-bold mb-1">Resumo &gt;&gt;</div>
         <div className="grid grid-cols-8 gap-2">
           <div>
             <span className="font-bold">Quant:</span> {totals.quantity.toFixed(0)}
           </div>
           <div>
-            <span className="font-bold">V. Unit:</span> R$ {totals.unit_price.toFixed(2)}
+            <span className="font-bold">Valor Médio Unit:</span> R$ {totals.unit_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">V. Total:</span> R$ {totals.total_price.toFixed(2)}
+            <span className="font-bold">Valor Total:</span> R$ {totals.total_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">C. Unit:</span> R$ {totals.unit_cost.toFixed(2)}
+            <span className="font-bold">Custo Médio Unit:</span> R$ {totals.unit_cost.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">C. Total:</span> R$ {totals.total_cost.toFixed(2)}
+            <span className="font-bold">Custo Total:</span> R$ {totals.total_cost.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">Imposto:</span> R$ {totals.tax.toFixed(2)}

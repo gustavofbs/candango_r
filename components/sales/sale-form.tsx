@@ -33,6 +33,7 @@ interface SaleFormProps {
 export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFormProps) {
   const safeCustomers = Array.isArray(customers) ? customers : []
   const safeProducts = Array.isArray(products) ? products : []
+  const [saleNumber, setSaleNumber] = useState(sale?.sale_number || "")
   const [formData, setFormData] = useState({
     customer_id: sale?.customer?.toString() || "",
     sale_date: sale?.sale_date || new Date().toISOString().split("T")[0],
@@ -72,6 +73,22 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
   const [refinements, setRefinements] = useState<CostRefinement[]>([])
   const [loadingRefinements, setLoadingRefinements] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Busca o próximo número de venda ao criar nova venda
+  useEffect(() => {
+    const fetchNextNumber = async () => {
+      if (!sale) {
+        try {
+          const nextNum = await salesApi.getNextNumber()
+          setSaleNumber(nextNum)
+        } catch (error) {
+          console.error("Erro ao buscar próximo número:", error)
+          setSaleNumber("00001")
+        }
+      }
+    }
+    fetchNextNumber()
+  }, [])
 
   // Recarrega dados quando a venda mudar
   useEffect(() => {
@@ -181,7 +198,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     try {
       // Prepara os dados da venda
       const saleData = {
-        sale_number: sale?.sale_number || `VND${Date.now().toString().slice(-8)}`,
+        sale_number: saleNumber,
         sale_type: formData.sale_type,
         customer: formData.customer_id ? Number(formData.customer_id) : null,
         sale_date: formData.sale_date,

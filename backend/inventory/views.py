@@ -200,6 +200,24 @@ class SaleViewSet(viewsets.ModelViewSet):
         sales = self.get_queryset()[:10]
         serializer = self.get_serializer(sales, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def next_number(self, request):
+        """Gera o próximo número de venda sequencial"""
+        # Busca a última venda criada
+        last_sale = Sale.objects.order_by('-id').first()
+        
+        if last_sale and last_sale.sale_number.isdigit():
+            # Se o último número é numérico, incrementa
+            next_num = int(last_sale.sale_number) + 1
+        else:
+            # Se não existe venda ou o formato é diferente, começa do 1
+            next_num = 1
+        
+        # Formata com 5 dígitos (00001, 00002, etc.)
+        next_sale_number = str(next_num).zfill(5)
+        
+        return Response({'next_number': next_sale_number})
 
 
 class StockMovementViewSet(viewsets.ModelViewSet):
