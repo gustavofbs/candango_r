@@ -39,7 +39,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     sale_type: sale?.sale_type || "venda",
     payment_method: sale?.payment_method || "dinheiro",
     nf: sale?.nf || "",
-    tax_percentage: sale?.tax_percentage || 0,
+    tax_percentage: sale?.tax_percentage || "",
     status: sale?.status || "disputa",
     notes: sale?.notes || "",
     discount: sale?.discount || 0,
@@ -82,7 +82,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         sale_type: sale.sale_type || "venda",
         payment_method: sale.payment_method || "dinheiro",
         nf: sale.nf || "",
-        tax_percentage: sale.tax_percentage || 0,
+        tax_percentage: sale.tax_percentage || "",
         status: sale.status || "disputa",
         notes: sale.notes || "",
         discount: sale.discount || 0,
@@ -140,7 +140,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     const unitCost = selectedRefinement ? Number(selectedRefinement.total) : 0
 
     const unitPrice = Number(product.sale_price)
-    const totalPrice = unitPrice * newItem.quantity - newItem.discount
+    const totalPrice = (unitPrice * newItem.quantity) - newItem.discount + Number(newItem.tax) + Number(newItem.freight)
 
     setItems([
       ...items,
@@ -152,8 +152,8 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         unit_cost: unitCost,
         cost_refinement_code: newItem.cost_refinement_code || undefined,
         discount: newItem.discount,
-        tax: newItem.tax,
-        freight: newItem.freight,
+        tax: Number(newItem.tax),
+        freight: Number(newItem.freight),
         total_price: totalPrice,
       },
     ])
@@ -237,6 +237,14 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         <div className="grid grid-cols-2 gap-2 mb-4">
           <FieldGroup label="Dados da Venda">
             <div className="space-y-2">
+              <FormField label="Data:" inline>
+                <input
+                  type="date"
+                  className="erp-input"
+                  value={formData.sale_date}
+                  onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                />
+              </FormField>
               <FormField label="Cliente:" inline>
                 <select
                   className="erp-select w-full"
@@ -251,14 +259,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   ))}
                 </select>
               </FormField>
-              <FormField label="Data:" inline>
-                <input
-                  type="date"
-                  className="erp-input"
-                  value={formData.sale_date}
-                  onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-                />
-              </FormField>
               <FormField label="Tipo:" inline>
                 <select
                   className="erp-select"
@@ -268,32 +268,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   <option value="venda">Venda</option>
                   <option value="dispensa">Dispensa</option>
                   <option value="pregao">Pregão</option>
-                </select>
-              </FormField>
-              <FormField label="Pagamento:" inline>
-                <select
-                  className="erp-select"
-                  value={formData.payment_method}
-                  onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                >
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="cartao_credito">Cartão de Crédito</option>
-                  <option value="cartao_debito">Cartão de Débito</option>
-                  <option value="pix">PIX</option>
-                  <option value="boleto">Boleto</option>
-                </select>
-              </FormField>
-              <FormField label="Status:" inline>
-                <select
-                  className="erp-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="disputa">Disputa</option>
-                  <option value="homologado">Homologado</option>
-                  <option value="producao">Produção</option>
-                  <option value="aguardando_pagamento">Aguardando Pagamento</option>
-                  <option value="liquidado">Liquidado</option>
                 </select>
               </FormField>
               <FormField label="NF:" inline>
@@ -313,7 +287,8 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   max="100"
                   className="erp-input w-24"
                   value={formData.tax_percentage}
-                  onChange={(e) => setFormData({ ...formData, tax_percentage: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, tax_percentage: e.target.value === "" ? "" : Number(e.target.value) })}
+                  placeholder="0.00"
                 />
               </FormField>
             </div>
@@ -344,16 +319,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
                 />
               </FormField>
-              <FormField label="Desconto:" inline>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="erp-input w-24"
-                  value={newItem.discount}
-                  onChange={(e) => setNewItem({ ...newItem, discount: Number(e.target.value) })}
-                />
-              </FormField>
               <FormField label="Refinamento:" inline>
                 <select
                   className="erp-select w-full"
@@ -372,28 +337,36 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   ))}
                 </select>
               </FormField>
-              <FormField label="Imposto:" inline>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="erp-input w-24"
-                  value={newItem.tax}
-                  onChange={(e) => setNewItem({ ...newItem, tax: Number(e.target.value) })}
-                />
-              </FormField>
               <FormField label="Frete:" inline>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="erp-input w-24"
-                  value={newItem.freight}
-                  onChange={(e) => setNewItem({ ...newItem, freight: Number(e.target.value) })}
+                  type="text"
+                  className="erp-input w-32"
+                  value={newItem.freight === 0 ? "" : `R$ ${Number(newItem.freight).toFixed(2).replace('.', ',')}`}
+                  onChange={(e) => {
+                    // Remove tudo exceto números
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    // Converte centavos para reais (divide por 100)
+                    const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
+                    setNewItem({ ...newItem, freight: valueInReais })
+                  }}
+                  placeholder="R$ 0,00"
                 />
               </FormField>
+              <FormField label="Status:" inline>
+                <select
+                  className="erp-select"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="disputa">Disputa</option>
+                  <option value="homologado">Homologado</option>
+                  <option value="producao">Produção</option>
+                  <option value="aguardando_pagamento">Aguardando Pagamento</option>
+                  <option value="liquidado">Liquidado</option>
+                </select>
+              </FormField>
               <button type="button" className="erp-button" onClick={addItem} disabled={!newItem.product_id}>
-                ➕ Adicionar
+                ➜ Adicionar
               </button>
             </div>
           </FieldGroup>
@@ -417,13 +390,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                 width: "90px",
                 align: "right",
                 render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
-              },
-              {
-                key: "discount",
-                header: "Desc.",
-                width: "70px",
-                align: "right",
-                render: (item) => `R$ ${Number(item.discount).toFixed(2)}`,
               },
               {
                 key: "tax",
@@ -462,26 +428,10 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
           />
         </FieldGroup>
 
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="erp-inset p-2 text-right">
-            <span className="text-[11px]">Subtotal: </span>
-            <strong>R$ {totalAmount.toFixed(2)}</strong>
-          </div>
-          <div className="erp-inset p-2">
-            <FormField label="Desconto Geral:" inline>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="erp-input w-24 text-right"
-                value={formData.discount}
-                onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
-              />
-            </FormField>
-          </div>
-          <div className="erp-inset p-2 text-right bg-[#ffffcc]">
+        <div className="flex justify-end mt-4">
+          <div className="erp-inset p-2 text-right bg-[#ffffcc] min-w-[200px]">
             <span className="text-[11px]">TOTAL: </span>
-            <strong className="text-lg">R$ {finalAmount.toFixed(2)}</strong>
+            <strong className="text-lg">R$ {totalAmount.toFixed(2)}</strong>
           </div>
         </div>
 

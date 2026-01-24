@@ -40,6 +40,8 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           const calculatedTax = (Number(item.total_price) * Number(sale.tax_percentage || 0)) / 100
           
           const rowId = `${sale.id}-${item.id}`
+          const totalCost = Number(item.unit_cost) * Number(item.quantity)
+          
           rows.push({
             id: rowId,
             sale_id: sale.id,
@@ -54,6 +56,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             unit_price: item.unit_price,
             total_price: item.total_price,
             unit_cost: item.unit_cost,
+            total_cost: totalCost,
             tax: calculatedTax,
             freight: item.freight,
             profit: item.profit,
@@ -69,7 +72,8 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
 
   // Calcula totais
   const totals = useMemo(() => {
-    return monthlyData.rows.reduce((acc, row) => ({
+    const rowCount = monthlyData.rows.length
+    const sums = monthlyData.rows.reduce((acc, row) => ({
       quantity: acc.quantity + Number(row.quantity),
       unit_price: acc.unit_price + Number(row.unit_price),
       total_price: acc.total_price + Number(row.total_price),
@@ -88,6 +92,13 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       freight: 0,
       profit: 0,
     })
+    
+    // Calcula médias para unit_price e unit_cost
+    return {
+      ...sums,
+      unit_price: rowCount > 0 ? sums.unit_price / rowCount : 0,
+      unit_cost: rowCount > 0 ? sums.unit_cost / rowCount : 0,
+    }
   }, [monthlyData])
 
   return (
