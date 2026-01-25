@@ -15,7 +15,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'code', 'name', 'description', 'category', 'category_name',
+            'id', 'code', 'name', 'composition', 'size', 'category', 'category_name',
             'unit', 'purchase_price', 'current_stock',
             'min_stock', 'max_stock', 'location', 'active',
             'created_at', 'updated_at'
@@ -28,7 +28,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             'id', 'code', 'name', 'document', 'email', 'phone',
-            'address', 'city', 'state', 'notes', 'active', 'created_at'
+            'zipcode', 'address', 'neighborhood', 'city', 'state', 'notes', 'active', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
 
@@ -38,7 +38,7 @@ class SupplierSerializer(serializers.ModelSerializer):
         model = Supplier
         fields = [
             'id', 'code', 'name', 'document', 'contact_name', 'email',
-            'phone', 'address', 'city', 'state', 'notes', 'active', 'created_at'
+            'phone', 'zipcode', 'address', 'neighborhood', 'city', 'state', 'notes', 'active', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
 

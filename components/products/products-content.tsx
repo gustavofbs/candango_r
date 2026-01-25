@@ -93,6 +93,17 @@ export function ProductsContent({ initialProducts, categories }: ProductsContent
           columns={[
             { key: "code", header: "Código", width: "80px" },
             { key: "name", header: "Nome do Produto" },
+            { 
+              key: "composition", 
+              header: "Composição",
+              render: (item) => item.composition || "-",
+            },
+            { 
+              key: "size", 
+              header: "Tamanho",
+              width: "100px",
+              render: (item) => item.size || "-",
+            },
             {
               key: "category",
               header: "Categoria",
@@ -113,9 +124,15 @@ export function ProductsContent({ initialProducts, categories }: ProductsContent
                 <StatusBadge
                   color={item.current_stock <= 0 ? "red" : item.current_stock < item.min_stock ? "yellow" : "green"}
                 >
-                  {item.current_stock}
+                  {Math.floor(Number(item.current_stock))}
                 </StatusBadge>
               ),
+            },
+            {
+              key: "min_stock",
+              header: "Estoque Mín.",
+              align: "right",
+              render: (item) => Math.floor(Number(item.min_stock)),
             },
             {
               key: "active",

@@ -16,18 +16,44 @@ interface CustomerFormProps {
 
 export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) {
   const [formData, setFormData] = useState({
-    code: customer?.code || "",
     name: customer?.name || "",
     document: customer?.document || "",
     email: customer?.email || "",
     phone: customer?.phone || "",
+    zipcode: customer?.zipcode || "",
     address: customer?.address || "",
+    neighborhood: customer?.neighborhood || "",
     city: customer?.city || "",
     state: customer?.state || "",
     notes: customer?.notes || "",
     active: customer?.active ?? true,
   })
+  const [loadingCep, setLoadingCep] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const handleCepBlur = async () => {
+    const cep = formData.zipcode.replace(/\D/g, '')
+    if (cep.length === 8) {
+      setLoadingCep(true)
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        const data = await response.json()
+        if (!data.erro) {
+          setFormData({
+            ...formData,
+            address: data.logradouro || formData.address,
+            neighborhood: data.bairro || formData.neighborhood,
+            city: data.localidade || formData.city,
+            state: data.uf || formData.state,
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error)
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,9 +66,10 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
         await customersApi.create(formData)
       }
       onSave()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar cliente:", error)
-      alert("Erro ao salvar cliente")
+      const errorMessage = error?.response?.data ? JSON.stringify(error.response.data) : "Erro ao salvar cliente"
+      alert(`Erro ao salvar cliente: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
@@ -54,15 +81,6 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
         <div className="grid grid-cols-2 gap-2">
           <FieldGroup label="Dados Básicos">
             <div className="space-y-2">
-              <FormField label="Código:" inline>
-                <input
-                  type="text"
-                  className="erp-input w-32"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  required
-                />
-              </FormField>
               <FormField label="Nome:" inline>
                 <input
                   type="text"
@@ -101,12 +119,32 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
 
           <FieldGroup label="Endereço">
             <div className="space-y-2">
+              <FormField label="CEP:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-32"
+                  value={formData.zipcode}
+                  onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+                {loadingCep && <span className="text-xs ml-2">Buscando...</span>}
+              </FormField>
               <FormField label="Endereço:" inline>
                 <input
                   type="text"
                   className="erp-input w-full"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </FormField>
+              <FormField label="Bairro:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-48"
+                  value={formData.neighborhood}
+                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 />
               </FormField>
               <FormField label="Cidade:" inline>

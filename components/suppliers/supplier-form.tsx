@@ -16,19 +16,45 @@ interface SupplierFormProps {
 
 export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) {
   const [formData, setFormData] = useState({
-    code: supplier?.code || "",
     name: supplier?.name || "",
     document: supplier?.document || "",
     contact_name: supplier?.contact_name || "",
     email: supplier?.email || "",
     phone: supplier?.phone || "",
+    zipcode: supplier?.zipcode || "",
     address: supplier?.address || "",
+    neighborhood: supplier?.neighborhood || "",
     city: supplier?.city || "",
     state: supplier?.state || "",
     notes: supplier?.notes || "",
     active: supplier?.active ?? true,
   })
+  const [loadingCep, setLoadingCep] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const handleCepBlur = async () => {
+    const cep = formData.zipcode.replace(/\D/g, '')
+    if (cep.length === 8) {
+      setLoadingCep(true)
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        const data = await response.json()
+        if (!data.erro) {
+          setFormData({
+            ...formData,
+            address: data.logradouro || formData.address,
+            neighborhood: data.bairro || formData.neighborhood,
+            city: data.localidade || formData.city,
+            state: data.uf || formData.state,
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error)
+      } finally {
+        setLoadingCep(false)
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,15 +81,6 @@ export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) 
         <div className="grid grid-cols-2 gap-2">
           <FieldGroup label="Dados do Fornecedor">
             <div className="space-y-2">
-              <FormField label="Código:" inline>
-                <input
-                  type="text"
-                  className="erp-input w-32"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  required
-                />
-              </FormField>
               <FormField label="Razão Social:" inline>
                 <input
                   type="text"
@@ -110,12 +127,32 @@ export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) 
 
           <FieldGroup label="Endereço">
             <div className="space-y-2">
+              <FormField label="CEP:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-32"
+                  value={formData.zipcode}
+                  onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
+                  onBlur={handleCepBlur}
+                  placeholder="00000-000"
+                  maxLength={9}
+                />
+                {loadingCep && <span className="text-xs ml-2">Buscando...</span>}
+              </FormField>
               <FormField label="Endereço:" inline>
                 <input
                   type="text"
                   className="erp-input w-full"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </FormField>
+              <FormField label="Bairro:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-48"
+                  value={formData.neighborhood}
+                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 />
               </FormField>
               <FormField label="Cidade:" inline>

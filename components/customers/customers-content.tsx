@@ -97,8 +97,35 @@ export function CustomersContent({ initialCustomers }: CustomersContentProps) {
             { key: "name", header: "Nome" },
             { key: "document", header: "CPF/CNPJ", width: "140px" },
             { key: "phone", header: "Telefone", width: "120px" },
-            { key: "city", header: "Cidade", width: "120px" },
-            { key: "state", header: "UF", width: "40px" },
+            { 
+              key: "zipcode", 
+              header: "CEP", 
+              width: "100px",
+              render: (item) => item.zipcode || "-",
+            },
+            { 
+              key: "address", 
+              header: "Endereço",
+              render: (item) => item.address || "-",
+            },
+            { 
+              key: "neighborhood", 
+              header: "Bairro",
+              width: "120px",
+              render: (item) => item.neighborhood || "-",
+            },
+            { 
+              key: "city", 
+              header: "Cidade", 
+              width: "120px",
+              render: (item) => item.city || "-",
+            },
+            { 
+              key: "state", 
+              header: "UF", 
+              width: "40px",
+              render: (item) => item.state || "-",
+            },
             {
               key: "active",
               header: "Status",

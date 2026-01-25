@@ -9,8 +9,10 @@ export interface Product {
   id: number
   code: string
   name: string
-  description: string | null
+  composition: string | null
+  size: string | null
   category_id: number | null
+  category_name?: string
   unit: string
   purchase_price: number
   current_stock: number
@@ -30,7 +32,9 @@ export interface Customer {
   document: string | null
   email: string | null
   phone: string | null
+  zipcode: string | null
   address: string | null
+  neighborhood: string | null
   city: string | null
   state: string | null
   notes: string | null
@@ -46,7 +50,9 @@ export interface Supplier {
   contact_name: string | null
   email: string | null
   phone: string | null
+  zipcode: string | null
   address: string | null
+  neighborhood: string | null
   city: string | null
   state: string | null
   notes: string | null

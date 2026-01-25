@@ -156,14 +156,14 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           },
           {
             key: "unit_price",
-            header: "Preço Unit.",
+            header: "Valor Unit.",
             width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
           },
           {
             key: "total_price",
-            header: "Preço Total",
+            header: "Valor Total",
             width: "100px",
             align: "right",
             render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
@@ -238,15 +238,16 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       />
 
       <div className="mt-2 text-[11px] erp-inset p-2">
+        <div className="font-bold mb-1">Resumo &gt;&gt;</div>
         <div className="grid grid-cols-8 gap-2">
           <div>
             <span className="font-bold">Quant:</span> {totals.quantity.toFixed(0)}
           </div>
           <div>
-            <span className="font-bold">Preço Unit:</span> R$ {totals.unit_price.toFixed(2)}
+            <span className="font-bold">V. Unit:</span> R$ {totals.unit_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">Preço Total:</span> R$ {totals.total_price.toFixed(2)}
+            <span className="font-bold">V. Total:</span> R$ {totals.total_price.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">C. Unit:</span> R$ {totals.unit_cost.toFixed(2)}

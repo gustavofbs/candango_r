@@ -18,16 +18,15 @@ interface ProductFormProps {
 export function ProductForm({ product, categories, onSave, onCancel }: ProductFormProps) {
   const safeCategories = Array.isArray(categories) ? categories : []
   const [formData, setFormData] = useState({
-    code: product?.code || "",
     name: product?.name || "",
-    description: product?.description || "",
+    composition: product?.composition || "",
+    size: product?.size || "",
     category: product?.category_id || null,
     unit: product?.unit || "UN",
     purchase_price: product?.purchase_price || 0,
-    current_stock: product?.current_stock || 0,
-    min_stock: product?.min_stock || 0,
-    max_stock: product?.max_stock || 0,
-    location: product?.location || "",
+    current_stock: product?.current_stock || "",
+    min_stock: product?.min_stock || "",
+    max_stock: product?.max_stock || "",
     active: product?.active ?? true,
   })
   const [saving, setSaving] = useState(false)
@@ -41,9 +40,9 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
         ...formData,
         category: formData.category || null,
         purchase_price: Number(formData.purchase_price),
-        current_stock: Number(formData.current_stock),
-        min_stock: Number(formData.min_stock),
-        max_stock: Number(formData.max_stock),
+        current_stock: formData.current_stock === "" ? 0 : Number(formData.current_stock),
+        min_stock: formData.min_stock === "" ? 0 : Number(formData.min_stock),
+        max_stock: formData.max_stock === "" ? 0 : Number(formData.max_stock),
       }
 
       if (product) {
@@ -67,15 +66,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
         <div className="grid grid-cols-2 gap-2">
           <FieldGroup label="Dados Básicos">
             <div className="space-y-2">
-              <FormField label="Código:" inline>
-                <input
-                  type="text"
-                  className="erp-input w-32"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  required
-                />
-              </FormField>
               <FormField label="Nome:" inline>
                 <input
                   type="text"
@@ -85,12 +75,20 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   required
                 />
               </FormField>
-              <FormField label="Descrição:" inline>
+              <FormField label="Composição:" inline>
                 <input
                   type="text"
                   className="erp-input flex-1 w-full"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  value={formData.composition}
+                  onChange={(e) => setFormData({ ...formData, composition: e.target.value })}
+                />
+              </FormField>
+              <FormField label="Tamanho:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-32"
+                  value={formData.size}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                 />
               </FormField>
               <FormField label="Categoria:" inline>
@@ -121,14 +119,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   <option value="PC">PC</option>
                 </select>
               </FormField>
-              <FormField label="Localização:" inline>
-                <input
-                  type="text"
-                  className="erp-input w-32"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                />
-              </FormField>
             </div>
           </FieldGroup>
 
@@ -136,11 +126,15 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
             <div className="space-y-2">
               <FormField label="Preço Compra:" inline>
                 <input
-                  type="number"
-                  step="0.01"
-                  className="erp-input w-28 text-right"
-                  value={formData.purchase_price}
-                  onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })}
+                  type="text"
+                  className="erp-input w-32"
+                  value={formData.purchase_price === 0 ? "" : `R$ ${Number(formData.purchase_price).toFixed(2).replace('.', ',')}`}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
+                    setFormData({ ...formData, purchase_price: valueInReais })
+                  }}
+                  placeholder="R$ 0,00"
                 />
               </FormField>
               <FormField label="Estoque Atual:" inline>
@@ -148,7 +142,8 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   type="number"
                   className="erp-input w-20 text-right"
                   value={formData.current_stock}
-                  onChange={(e) => setFormData({ ...formData, current_stock: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
+                  placeholder="0"
                 />
               </FormField>
               <FormField label="Estoque Mín.:" inline>
@@ -156,7 +151,8 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   type="number"
                   className="erp-input w-20 text-right"
                   value={formData.min_stock}
-                  onChange={(e) => setFormData({ ...formData, min_stock: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
+                  placeholder="0"
                 />
               </FormField>
               <FormField label="Estoque Máx.:" inline>
@@ -164,7 +160,8 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   type="number"
                   className="erp-input w-20 text-right"
                   value={formData.max_stock}
-                  onChange={(e) => setFormData({ ...formData, max_stock: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, max_stock: e.target.value })}
+                  placeholder="0"
                 />
               </FormField>
               <FormField label="Ativo:" inline>

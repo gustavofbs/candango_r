@@ -331,13 +331,15 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
               </FormField>
               <FormField label="Valor de venda:" inline>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
                   className="erp-input w-32"
-                  value={newItem.unit_price}
-                  onChange={(e) => setNewItem({ ...newItem, unit_price: Number(e.target.value) })}
-                  placeholder="0.00"
+                  value={newItem.unit_price === 0 ? "" : `R$ ${Number(newItem.unit_price).toFixed(2).replace('.', ',')}`}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
+                    setNewItem({ ...newItem, unit_price: valueInReais })
+                  }}
+                  placeholder="R$ 0,00"
                 />
               </FormField>
               <FormField label="Quantidade:" inline>

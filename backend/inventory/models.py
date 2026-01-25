@@ -27,9 +27,10 @@ class Product(models.Model):
         ('PC', 'Peça'),
     ]
 
-    code = models.CharField(max_length=50, unique=True, verbose_name='Código')
+    code = models.CharField(max_length=50, unique=True, blank=True, verbose_name='Código')
     name = models.CharField(max_length=200, verbose_name='Nome')
-    description = models.TextField(blank=True, null=True, verbose_name='Descrição')
+    composition = models.TextField(blank=True, null=True, verbose_name='Composição')
+    size = models.CharField(max_length=50, blank=True, null=True, verbose_name='Tamanho')
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -75,18 +76,31 @@ class Product(models.Model):
         verbose_name = 'Produto'
         verbose_name_plural = 'Produtos'
         ordering = ['name']
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Gera código automático
+            last_product = Product.objects.order_by('-id').first()
+            if last_product and last_product.code.isdigit():
+                next_num = int(last_product.code) + 1
+            else:
+                next_num = 1
+            self.code = str(next_num).zfill(5)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.code} - {self.name}'
 
 
 class Customer(models.Model):
-    code = models.CharField(max_length=50, unique=True, verbose_name='Código')
+    code = models.CharField(max_length=50, unique=True, blank=True, verbose_name='Código')
     name = models.CharField(max_length=200, verbose_name='Nome')
     document = models.CharField(max_length=20, blank=True, null=True, verbose_name='CPF/CNPJ')
     email = models.EmailField(blank=True, null=True, verbose_name='Email')
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name='Telefone')
+    zipcode = models.CharField(max_length=10, blank=True, null=True, verbose_name='CEP')
     address = models.CharField(max_length=300, blank=True, null=True, verbose_name='Endereço')
+    neighborhood = models.CharField(max_length=100, blank=True, null=True, verbose_name='Bairro')
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cidade')
     state = models.CharField(max_length=2, blank=True, null=True, verbose_name='Estado')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
@@ -97,19 +111,32 @@ class Customer(models.Model):
         verbose_name = 'Cliente'
         verbose_name_plural = 'Clientes'
         ordering = ['name']
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Gera código automático
+            last_customer = Customer.objects.order_by('-id').first()
+            if last_customer and last_customer.code.isdigit():
+                next_num = int(last_customer.code) + 1
+            else:
+                next_num = 1
+            self.code = str(next_num).zfill(5)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.code} - {self.name}'
 
 
 class Supplier(models.Model):
-    code = models.CharField(max_length=50, unique=True, verbose_name='Código')
+    code = models.CharField(max_length=50, unique=True, blank=True, verbose_name='Código')
     name = models.CharField(max_length=200, verbose_name='Nome')
     document = models.CharField(max_length=20, blank=True, null=True, verbose_name='CNPJ')
     contact_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Nome do Contato')
     email = models.EmailField(blank=True, null=True, verbose_name='Email')
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name='Telefone')
+    zipcode = models.CharField(max_length=10, blank=True, null=True, verbose_name='CEP')
     address = models.CharField(max_length=300, blank=True, null=True, verbose_name='Endereço')
+    neighborhood = models.CharField(max_length=100, blank=True, null=True, verbose_name='Bairro')
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cidade')
     state = models.CharField(max_length=2, blank=True, null=True, verbose_name='Estado')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
@@ -120,6 +147,17 @@ class Supplier(models.Model):
         verbose_name = 'Fornecedor'
         verbose_name_plural = 'Fornecedores'
         ordering = ['name']
+    
+    def save(self, *args, **kwargs):
+        if not self.code:
+            # Gera código automático
+            last_supplier = Supplier.objects.order_by('-id').first()
+            if last_supplier and last_supplier.code.isdigit():
+                next_num = int(last_supplier.code) + 1
+            else:
+                next_num = 1
+            self.code = str(next_num).zfill(5)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.code} - {self.name}'
