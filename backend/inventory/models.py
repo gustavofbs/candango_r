@@ -163,6 +163,39 @@ class Supplier(models.Model):
         return f'{self.code} - {self.name}'
 
 
+class Expense(models.Model):
+    EXPENSE_TYPE_CHOICES = [
+        ('FIXO', 'Fixo'),
+        ('VARIAVEL', 'Variável'),
+    ]
+    
+    name = models.CharField(max_length=200, verbose_name='Nome da Despesa')
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Valor da Despesa'
+    )
+    expense_type = models.CharField(
+        max_length=10,
+        choices=EXPENSE_TYPE_CHOICES,
+        verbose_name='Tipo'
+    )
+    date = models.DateField(verbose_name='Data')
+    notes = models.TextField(blank=True, null=True, verbose_name='Observações')
+    active = models.BooleanField(default=True, verbose_name='Ativo')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+
+    class Meta:
+        verbose_name = 'Despesa'
+        verbose_name_plural = 'Despesas'
+        ordering = ['-date', '-created_at']
+    
+    def __str__(self):
+        return f'{self.name} - R$ {self.amount} ({self.get_expense_type_display()})'
+
+
 class ProductionCost(models.Model):
     product = models.ForeignKey(
         Product,

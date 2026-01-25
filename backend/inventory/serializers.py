@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, Customer, Supplier, ProductionCost, Sale, SaleItem, StockMovement
+from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -41,6 +41,15 @@ class SupplierSerializer(serializers.ModelSerializer):
             'phone', 'zipcode', 'address', 'neighborhood', 'city', 'state', 'notes', 'active', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Expense
+        fields = [
+            'id', 'name', 'amount', 'expense_type', 'date', 'notes', 'active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class ProductionCostSerializer(serializers.ModelSerializer):

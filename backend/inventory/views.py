@@ -2,10 +2,10 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Count, Q, F
-from .models import Category, Product, Customer, Supplier, ProductionCost, Sale, SaleItem, StockMovement
+from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement
 from .serializers import (
     CategorySerializer, ProductSerializer, CustomerSerializer,
-    SupplierSerializer, ProductionCostSerializer, SaleSerializer,
+    SupplierSerializer, ExpenseSerializer, ProductionCostSerializer, SaleSerializer,
     SaleCreateSerializer, StockMovementSerializer
 )
 
@@ -91,6 +91,28 @@ class SupplierViewSet(viewsets.ModelViewSet):
         active = self.request.query_params.get('active', None)
         if active is not None:
             queryset = queryset.filter(active=active.lower() == 'true')
+        
+        return queryset
+
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    queryset = Expense.objects.all()
+    serializer_class = ExpenseSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'expense_type']
+    ordering_fields = ['date', 'amount', 'created_at']
+    ordering = ['-date', '-created_at']
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        active = self.request.query_params.get('active', None)
+        if active is not None:
+            queryset = queryset.filter(active=active.lower() == 'true')
+        
+        expense_type = self.request.query_params.get('expense_type', None)
+        if expense_type:
+            queryset = queryset.filter(expense_type=expense_type)
         
         return queryset
 

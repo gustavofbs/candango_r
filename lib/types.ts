@@ -60,6 +60,18 @@ export interface Supplier {
   created_at: string
 }
 
+export interface Expense {
+  id: number
+  name: string
+  amount: number
+  expense_type: 'FIXO' | 'VARIAVEL'
+  date: string
+  notes: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface ProductionCost {
   id: number
   product: number

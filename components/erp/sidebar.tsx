@@ -10,6 +10,7 @@ const menuItems = [
   { href: "/clientes", label: "Clientes", icon: "👥" },
   { href: "/fornecedores", label: "Fornecedores", icon: "🏭" },
   { href: "/vendas", label: "Vendas", icon: "💰" },
+  { href: "/despesas", label: "Despesas", icon: "💸" },
   { href: "/custos", label: "Custos Produção", icon: "📋" },
   { href: "/movimentacoes", label: "Movimentações", icon: "🔄" },
 ]
