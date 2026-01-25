@@ -24,7 +24,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
     category: product?.category_id || null,
     unit: product?.unit || "UN",
     purchase_price: product?.purchase_price || 0,
-    sale_price: product?.sale_price || 0,
     current_stock: product?.current_stock || 0,
     min_stock: product?.min_stock || 0,
     max_stock: product?.max_stock || 0,
@@ -42,7 +41,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
         ...formData,
         category: formData.category || null,
         purchase_price: Number(formData.purchase_price),
-        sale_price: Number(formData.sale_price),
         current_stock: Number(formData.current_stock),
         min_stock: Number(formData.min_stock),
         max_stock: Number(formData.max_stock),
@@ -143,15 +141,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
                   className="erp-input w-28 text-right"
                   value={formData.purchase_price}
                   onChange={(e) => setFormData({ ...formData, purchase_price: Number(e.target.value) })}
-                />
-              </FormField>
-              <FormField label="Preço Venda:" inline>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="erp-input w-28 text-right"
-                  value={formData.sale_price}
-                  onChange={(e) => setFormData({ ...formData, sale_price: Number(e.target.value) })}
                 />
               </FormField>
               <FormField label="Estoque Atual:" inline>

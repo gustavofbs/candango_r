@@ -106,12 +106,6 @@ export function ProductsContent({ initialProducts, categories }: ProductsContent
               render: (item) => `R$ ${Number(item.purchase_price).toFixed(2)}`,
             },
             {
-              key: "sale_price",
-              header: "Preço Venda",
-              align: "right",
-              render: (item) => `R$ ${Number(item.sale_price).toFixed(2)}`,
-            },
-            {
               key: "current_stock",
               header: "Estoque",
               align: "right",

@@ -65,6 +65,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
   const [newItem, setNewItem] = useState({
     product_id: "",
     quantity: 1,
+    unit_price: 0,
     discount: 0,
     cost_refinement_code: "",
     tax: 0,
@@ -153,10 +154,11 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     if (!product) return
 
     // Busca o refinamento selecionado para pegar o custo
+    // Se não houver refinamento, usa o preço de compra do produto
     const selectedRefinement = refinements.find((r: any) => r.refinement_code === newItem.cost_refinement_code)
-    const unitCost = selectedRefinement ? Number(selectedRefinement.total) : 0
+    const unitCost = selectedRefinement ? Number(selectedRefinement.total) : Number(product.purchase_price)
 
-    const unitPrice = Number(product.sale_price)
+    const unitPrice = Number(newItem.unit_price)
     const totalPrice = (unitPrice * newItem.quantity) - newItem.discount + Number(newItem.tax) + Number(newItem.freight)
 
     setItems([
@@ -175,7 +177,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
       },
     ])
 
-    setNewItem({ product_id: "", quantity: 1, discount: 0, cost_refinement_code: "", tax: 0, freight: 0 })
+    setNewItem({ product_id: "", quantity: 1, unit_price: 0, discount: 0, cost_refinement_code: "", tax: 0, freight: 0 })
     setRefinements([])
   }
 
@@ -322,10 +324,21 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   <option value="">Selecione...</option>
                   {safeProducts.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.code} - {p.name} (Est: {p.current_stock}) - R$ {Number(p.sale_price).toFixed(2)}
+                      {p.code} - {p.name} (Est: {p.current_stock})
                     </option>
                   ))}
                 </select>
+              </FormField>
+              <FormField label="Valor de venda:" inline>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="erp-input w-32"
+                  value={newItem.unit_price}
+                  onChange={(e) => setNewItem({ ...newItem, unit_price: Number(e.target.value) })}
+                  placeholder="0.00"
+                />
               </FormField>
               <FormField label="Quantidade:" inline>
                 <input

@@ -5,6 +5,7 @@ interface ToolbarButton {
   onClick: () => void
   icon?: string
   disabled?: boolean
+  active?: boolean
 }
 
 interface ToolbarProps {
@@ -19,7 +20,9 @@ export function Toolbar({ buttons }: ToolbarProps) {
           key={i}
           onClick={btn.onClick}
           disabled={btn.disabled}
-          className="erp-button flex items-center gap-1 disabled:opacity-50"
+          className={`erp-button flex items-center gap-1 disabled:opacity-50 ${
+            btn.active ? 'erp-inset bg-gray-300' : ''
+          }`}
         >
           {btn.icon && <span>{btn.icon}</span>}
           {btn.label}

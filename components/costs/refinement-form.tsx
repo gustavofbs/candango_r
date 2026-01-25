@@ -20,7 +20,7 @@ interface CostItem {
   value: number
 }
 
-const COST_TYPES = [
+const DEFAULT_COST_TYPES = [
   { value: "aviamentos", label: "Aviamentos" },
   { value: "corte_tecido", label: "Corte do tecido" },
   { value: "costura", label: "Costura" },
@@ -37,26 +37,41 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
   
   const [formData, setFormData] = useState({
     product_id: "",
-    refinement_name: "",
     date: new Date().toISOString().split("T")[0],
   })
   
   const [costs, setCosts] = useState<CostItem[]>([])
+  const [costTypes, setCostTypes] = useState(DEFAULT_COST_TYPES)
+  const [isCustomType, setIsCustomType] = useState(false)
+  const [customTypeName, setCustomTypeName] = useState("")
   
   const [newCost, setNewCost] = useState({
     cost_type: "tipo_tecido",
-    description: "",
     value: 0,
   })
   
   const [saving, setSaving] = useState(false)
 
-  const addCost = () => {
-    if (!newCost.description.trim()) {
-      alert("A descrição é obrigatória")
+  const addCustomType = () => {
+    if (!customTypeName.trim()) {
+      alert("Digite o nome do novo tipo de custo")
       return
     }
     
+    const customValue = customTypeName.toLowerCase().replace(/\s+/g, "_")
+    
+    if (costTypes.some(t => t.value === customValue)) {
+      alert("Este tipo de custo já existe")
+      return
+    }
+    
+    setCostTypes([...costTypes, { value: customValue, label: customTypeName }])
+    setNewCost({ ...newCost, cost_type: customValue })
+    setCustomTypeName("")
+    setIsCustomType(false)
+  }
+
+  const addCost = () => {
     if (newCost.value <= 0) {
       alert("O valor deve ser maior que zero")
       return
@@ -68,10 +83,9 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
       return
     }
     
-    setCosts([...costs, { ...newCost }])
+    setCosts([...costs, { ...newCost, description: "" }])
     setNewCost({
       cost_type: "tipo_tecido",
-      description: "",
       value: 0,
     })
   }
@@ -87,11 +101,6 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
     
     if (!formData.product_id) {
       alert("Selecione um produto")
-      return
-    }
-    
-    if (!formData.refinement_name.trim()) {
-      alert("O nome do refinamento é obrigatório")
       return
     }
     
@@ -113,12 +122,12 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
       for (const cost of costs) {
         await costsApi.create({
           product: Number(formData.product_id),
-          description: cost.description,
+          description: "",
           cost_type: cost.cost_type,
           value: cost.value,
           date: formData.date,
           refinement_code: refinementCode,
-          refinement_name: formData.refinement_name,
+          refinement_name: refinementCode,
           notes: null,
         })
       }
@@ -134,7 +143,7 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
   }
 
   return (
-    <ErpWindow title="Novo Refinamento de Custo">
+    <ErpWindow title="Novo Custo">
       <form onSubmit={handleSubmit}>
         <FieldGroup label="Dados do Refinamento">
           <div className="space-y-2">
@@ -154,17 +163,6 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
               </select>
             </FormField>
             
-            <FormField label="Nome do Refinamento:" inline>
-              <input
-                type="text"
-                className="erp-input w-full"
-                value={formData.refinement_name}
-                onChange={(e) => setFormData({ ...formData, refinement_name: e.target.value })}
-                placeholder="Ex: Camiseta Básica Branca - Versão 1"
-                required
-              />
-            </FormField>
-            
             <FormField label="Data:" inline>
               <input
                 type="date"
@@ -180,37 +178,63 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
         <FieldGroup label="Adicionar Custo">
           <div className="space-y-2">
             <FormField label="Tipo de Custo:" inline>
-              <select
-                className="erp-select w-full"
-                value={newCost.cost_type}
-                onChange={(e) => setNewCost({ ...newCost, cost_type: e.target.value })}
-              >
-                {COST_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2 w-full">
+                <select
+                  className="erp-select flex-1"
+                  value={newCost.cost_type}
+                  onChange={(e) => setNewCost({ ...newCost, cost_type: e.target.value })}
+                  disabled={isCustomType}
+                >
+                  {costTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="erp-button"
+                  onClick={() => setIsCustomType(!isCustomType)}
+                >
+                  {isCustomType ? "❌" : "➕ Novo Tipo"}
+                </button>
+              </div>
             </FormField>
             
-            <FormField label="Descrição:" inline>
-              <input
-                type="text"
-                className="erp-input w-full"
-                value={newCost.description}
-                onChange={(e) => setNewCost({ ...newCost, description: e.target.value })}
-                placeholder="Ex: Malha PV 30.1"
-              />
-            </FormField>
+            {isCustomType && (
+              <FormField label="Nome do Novo Tipo:" inline>
+                <div className="flex gap-2 w-full">
+                  <input
+                    type="text"
+                    className="erp-input flex-1"
+                    value={customTypeName}
+                    onChange={(e) => setCustomTypeName(e.target.value)}
+                    placeholder="Ex: Bordado, Estampa, etc."
+                  />
+                  <button
+                    type="button"
+                    className="erp-button"
+                    onClick={addCustomType}
+                  >
+                    ✅ Adicionar Tipo
+                  </button>
+                </div>
+              </FormField>
+            )}
             
             <FormField label="Valor:" inline>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 className="erp-input w-32"
-                value={newCost.value}
-                onChange={(e) => setNewCost({ ...newCost, value: Number(e.target.value) })}
+                value={newCost.value === 0 ? "" : `R$ ${Number(newCost.value).toFixed(2).replace('.', ',')}`}
+                onChange={(e) => {
+                  // Remove tudo exceto números
+                  const numericValue = e.target.value.replace(/\D/g, '')
+                  // Converte centavos para reais (divide por 100)
+                  const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
+                  setNewCost({ ...newCost, value: valueInReais })
+                }}
+                placeholder="R$ 0,00"
               />
             </FormField>
             
@@ -226,9 +250,8 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
               { 
                 key: "cost_type", 
                 header: "Tipo",
-                render: (item) => COST_TYPES.find(t => t.value === item.cost_type)?.label || item.cost_type
+                render: (item) => costTypes.find(t => t.value === item.cost_type)?.label || item.cost_type
               },
-              { key: "description", header: "Descrição" },
               {
                 key: "value",
                 header: "Valor",

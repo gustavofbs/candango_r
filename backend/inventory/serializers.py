@@ -16,7 +16,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'code', 'name', 'description', 'category', 'category_name',
-            'unit', 'purchase_price', 'sale_price', 'current_stock',
+            'unit', 'purchase_price', 'current_stock',
             'min_stock', 'max_stock', 'location', 'active',
             'created_at', 'updated_at'
         ]
@@ -47,15 +47,15 @@ class ProductionCostSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_code = serializers.CharField(source='product.code', read_only=True)
     locked_by_sale_number = serializers.CharField(source='locked_by_sale.sale_number', read_only=True, allow_null=True)
-    cost_type_display = serializers.CharField(source='get_cost_type_display', read_only=True)
+    locked_by_sale_customer = serializers.CharField(source='locked_by_sale.customer.name', read_only=True, allow_null=True)
     
     class Meta:
         model = ProductionCost
         fields = [
             'id', 'product', 'product_name', 'product_code', 'description', 
-            'cost_type', 'cost_type_display', 'value', 'date', 'notes',
+            'cost_type', 'value', 'date', 'notes',
             'refinement_code', 'refinement_name', 'is_locked', 
-            'locked_by_sale', 'locked_by_sale_number', 'locked_at', 'created_at'
+            'locked_by_sale', 'locked_by_sale_number', 'locked_by_sale_customer', 'locked_at', 'created_at'
         ]
         read_only_fields = ['id', 'created_at', 'is_locked', 'locked_by_sale', 'locked_at']
 

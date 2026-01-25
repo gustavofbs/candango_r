@@ -156,14 +156,14 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           },
           {
             key: "unit_price",
-            header: "Valor Unit.",
+            header: "Preço Unit.",
             width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
           },
           {
             key: "total_price",
-            header: "Valor Total",
+            header: "Preço Total",
             width: "100px",
             align: "right",
             render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
@@ -174,6 +174,13 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
+          },
+          {
+            key: "total_cost",
+            header: "C. Total",
+            width: "100px",
+            align: "right",
+            render: (item) => `R$ ${Number(item.total_cost).toFixed(2)}`,
           },
           {
             key: "tax",
@@ -236,16 +243,16 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             <span className="font-bold">Quant:</span> {totals.quantity.toFixed(0)}
           </div>
           <div>
-            <span className="font-bold">Valor Médio Unit:</span> R$ {totals.unit_price.toFixed(2)}
+            <span className="font-bold">Preço Unit:</span> R$ {totals.unit_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">Valor Total:</span> R$ {totals.total_price.toFixed(2)}
+            <span className="font-bold">Preço Total:</span> R$ {totals.total_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">Custo Médio Unit:</span> R$ {totals.unit_cost.toFixed(2)}
+            <span className="font-bold">C. Unit:</span> R$ {totals.unit_cost.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">Custo Total:</span> R$ {totals.total_cost.toFixed(2)}
+            <span className="font-bold">C. Total:</span> R$ {totals.total_cost.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">Imposto:</span> R$ {totals.tax.toFixed(2)}

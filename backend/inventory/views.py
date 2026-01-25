@@ -161,7 +161,6 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
             refinements[code]['costs'].append({
                 'id': cost.id,
                 'cost_type': cost.cost_type,
-                'cost_type_display': cost.get_cost_type_display(),
                 'value': float(cost.value),
                 'description': cost.description,
             })

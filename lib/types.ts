@@ -13,7 +13,6 @@ export interface Product {
   category_id: number | null
   unit: string
   purchase_price: number
-  sale_price: number
   current_stock: number
   min_stock: number
   max_stock: number

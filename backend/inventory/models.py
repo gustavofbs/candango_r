@@ -45,12 +45,6 @@ class Product(models.Model):
         validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name='Preço de Compra'
     )
-    sale_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name='Preço de Venda'
-    )
     current_stock = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -132,26 +126,14 @@ class Supplier(models.Model):
 
 
 class ProductionCost(models.Model):
-    COST_TYPE_CHOICES = [
-        ('aviamentos', 'Aviamentos'),
-        ('corte_tecido', 'Corte do tecido'),
-        ('costura', 'Costura'),
-        ('dtf', 'DTF'),
-        ('embalagem', 'Embalagem'),
-        ('etiqueta', 'Etiqueta'),
-        ('silk', 'Silk'),
-        ('sublimacao', 'Sublimação'),
-        ('tipo_tecido', 'Tipo de tecido'),
-    ]
-
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
         related_name='production_costs',
         verbose_name='Produto'
     )
-    description = models.CharField(max_length=200, verbose_name='Descrição')
-    cost_type = models.CharField(max_length=20, choices=COST_TYPE_CHOICES, verbose_name='Tipo de Custo')
+    description = models.CharField(max_length=200, blank=True, default='', verbose_name='Descrição')
+    cost_type = models.CharField(max_length=50, verbose_name='Tipo de Custo')
     value = models.DecimalField(
         max_digits=10,
         decimal_places=2,
