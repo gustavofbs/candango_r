@@ -1,13 +1,13 @@
 import apiClient from "./client"
-import type { Product, StockMovement, Sale } from "@/lib/types"
+import type { Product, Sale } from "@/lib/types"
 
 interface DashboardData {
   totalProducts: number
   totalCustomers: number
   totalSuppliers: number
   lowStockProducts: Product[]
-  recentMovements: (StockMovement & { product: { name: string } | null })[]
   recentSales: (Sale & { customer: { name: string } | null })[]
+  monthlyResult: number
 }
 
 export const dashboardApi = {

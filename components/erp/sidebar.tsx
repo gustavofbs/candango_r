@@ -12,7 +12,8 @@ const menuItems = [
   { href: "/vendas", label: "Vendas", icon: "💰" },
   { href: "/despesas", label: "Despesas", icon: "💸" },
   { href: "/custos", label: "Custos Produção", icon: "📋" },
-  { href: "/movimentacoes", label: "Movimentações", icon: "🔄" },
+  { href: "/relatorios", label: "Relatórios", icon: "📄" },
+  { href: "/empresa", label: "Empresa", icon: "🏢" },
 ]
 
 export function Sidebar() {

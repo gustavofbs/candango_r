@@ -554,3 +554,43 @@ class StockMovement(models.Model):
                 self.product.current_stock = self.quantity
             
             self.product.save()
+
+
+class Company(models.Model):
+    razao_social = models.CharField(max_length=200, verbose_name='Razão Social')
+    nome_fantasia = models.CharField(max_length=200, blank=True, null=True, verbose_name='Nome Fantasia')
+    cnpj = models.CharField(max_length=18, unique=True, verbose_name='CNPJ')
+    inscricao_estadual = models.CharField(max_length=20, blank=True, null=True, verbose_name='Inscrição Estadual')
+    
+    # Endereço
+    cep = models.CharField(max_length=9, verbose_name='CEP')
+    street = models.CharField(max_length=200, verbose_name='Rua')
+    number = models.CharField(max_length=20, verbose_name='Número')
+    complement = models.CharField(max_length=100, blank=True, null=True, verbose_name='Complemento')
+    neighborhood = models.CharField(max_length=100, verbose_name='Bairro')
+    city = models.CharField(max_length=100, verbose_name='Cidade')
+    state = models.CharField(max_length=2, verbose_name='UF')
+    
+    # Contato
+    phone = models.CharField(max_length=20, verbose_name='Telefone')
+    email = models.EmailField(verbose_name='E-mail')
+    website = models.URLField(blank=True, null=True, verbose_name='Website')
+    
+    # Responsável
+    responsavel = models.CharField(max_length=200, verbose_name='Responsável')
+    
+    # Logo
+    logo = models.ImageField(upload_to='company_logos/', blank=True, null=True, verbose_name='Logo')
+    
+    # Metadata
+    active = models.BooleanField(default=True, verbose_name='Ativo')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+
+    class Meta:
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.razao_social

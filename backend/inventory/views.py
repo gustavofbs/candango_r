@@ -2,11 +2,11 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.db.models import Count, Q, F
-from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement
+from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement, Company
 from .serializers import (
     CategorySerializer, ProductSerializer, CustomerSerializer,
     SupplierSerializer, ExpenseSerializer, ProductionCostSerializer, SaleSerializer,
-    SaleCreateSerializer, StockMovementSerializer
+    SaleCreateSerializer, StockMovementSerializer, CompanySerializer
 )
 
 
@@ -269,30 +269,84 @@ class StockMovementViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['razao_social', 'nome_fantasia', 'cnpj']
+    ordering_fields = ['razao_social', 'created_at']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        active = self.request.query_params.get('active', None)
+        if active is not None:
+            queryset = queryset.filter(active=active.lower() == 'true')
+        
+        return queryset
+
+
 @api_view(['GET'])
 def dashboard_view(request):
     """
     Endpoint para retornar dados do dashboard
     """
-    total_products = Product.objects.count()
-    total_customers = Customer.objects.filter(active=True).count()
-    total_suppliers = Supplier.objects.filter(active=True).count()
+    from datetime import datetime
+    from django.db.models import Sum
     
-    low_stock_products = Product.objects.filter(
-        current_stock__lt=F('min_stock')
-    ).select_related('category')[:10]
-    
-    recent_movements = StockMovement.objects.select_related('product')[:10]
-    
-    recent_sales = Sale.objects.select_related('customer')[:5]
-    
-    data = {
-        'totalProducts': total_products,
-        'totalCustomers': total_customers,
-        'totalSuppliers': total_suppliers,
-        'lowStockProducts': ProductSerializer(low_stock_products, many=True).data,
-        'recentMovements': StockMovementSerializer(recent_movements, many=True).data,
-        'recentSales': SaleSerializer(recent_sales, many=True).data,
-    }
-    
-    return Response(data)
+    try:
+        total_products = Product.objects.count()
+        total_customers = Customer.objects.filter(active=True).count()
+        total_suppliers = Supplier.objects.filter(active=True).count()
+        
+        low_stock_products = Product.objects.filter(
+            current_stock__lt=F('min_stock')
+        ).select_related('category')[:10]
+        
+        recent_sales = Sale.objects.select_related('customer')[:5]
+        
+        # Calcular resultado mensal (Lucro de Vendas - Despesas do mês atual)
+        now = datetime.now()
+        current_month = now.month
+        current_year = now.year
+        
+        # Lucro total das vendas do mês atual (soma do profit dos SaleItem de vendas liquidadas)
+        monthly_profit = SaleItem.objects.filter(
+            sale__sale_date__month=current_month,
+            sale__sale_date__year=current_year,
+            sale__status='liquidado'
+        ).aggregate(total=Sum('profit'))['total'] or 0
+        
+        # Total de despesas do mês atual (active = True)
+        try:
+            monthly_expenses = Expense.objects.filter(
+                date__month=current_month,
+                date__year=current_year,
+                active=True
+            ).aggregate(total=Sum('amount'))['total'] or 0
+        except Exception as e:
+            print(f"Erro ao buscar despesas: {e}")
+            monthly_expenses = 0
+        
+        # Resultado = Lucro - Despesas
+        monthly_result = float(monthly_profit) - float(monthly_expenses)
+        
+        data = {
+            'totalProducts': total_products,
+            'totalCustomers': total_customers,
+            'totalSuppliers': total_suppliers,
+            'lowStockProducts': ProductSerializer(low_stock_products, many=True).data,
+            'recentSales': SaleSerializer(recent_sales, many=True).data,
+            'monthlyResult': monthly_result,
+        }
+        
+        return Response(data)
+    except Exception as e:
+        print(f"Erro no dashboard_view: {e}")
+        import traceback
+        traceback.print_exc()
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

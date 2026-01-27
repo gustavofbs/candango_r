@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryViewSet, ProductViewSet, CustomerViewSet,
     SupplierViewSet, ExpenseViewSet, ProductionCostViewSet, SaleViewSet,
-    StockMovementViewSet
+    StockMovementViewSet, CompanyViewSet
 )
 from . import views
 
@@ -16,6 +16,7 @@ router.register(r'expenses', ExpenseViewSet, basename='expense')
 router.register(r'production-costs', ProductionCostViewSet, basename='productioncost')
 router.register(r'sales', SaleViewSet, basename='sale')
 router.register(r'stock-movements', StockMovementViewSet, basename='stockmovement')
+router.register(r'company', CompanyViewSet, basename='company')
 
 urlpatterns = [
     path('', include(router.urls)),

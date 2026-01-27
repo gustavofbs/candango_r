@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -19,6 +19,10 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
   const refreshExpenses = async () => {
     try {
@@ -61,7 +65,18 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
     setSelectedIndex(undefined)
   }
 
-  const filteredExpenses = expenses.filter(
+  // Filtrar despesas por mês selecionado
+  const monthlyExpenses = useMemo(() => {
+    const [year, month] = selectedMonth.split('-')
+    
+    return expenses.filter((expense: Expense) => {
+      const expenseDate = new Date(expense.date)
+      return expenseDate.getFullYear() === parseInt(year) && 
+             expenseDate.getMonth() + 1 === parseInt(month)
+    })
+  }, [expenses, selectedMonth])
+
+  const filteredExpenses = monthlyExpenses.filter(
     (e) =>
       e.name.toLowerCase().includes(filter.toLowerCase()) ||
       e.expense_type.toLowerCase().includes(filter.toLowerCase()),
@@ -81,8 +96,15 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
           ]}
         />
 
-        <div className="flex gap-2 mb-2">
-          <label className="text-[11px]">Filtrar:</label>
+        <div className="flex gap-2 mb-2 items-center">
+          <label className="text-[11px]">Mês/Ano:</label>
+          <input
+            type="month"
+            className="erp-input w-40"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          />
+          <label className="text-[11px] ml-4">Filtrar:</label>
           <input
             type="text"
             className="erp-input flex-1"

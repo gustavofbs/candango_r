@@ -3,15 +3,15 @@
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { StatusBadge } from "@/components/erp/status-badge"
-import type { Product, StockMovement, Sale } from "@/lib/types"
+import type { Product, Sale } from "@/lib/types"
 
 interface DashboardContentProps {
   totalProducts: number
   totalCustomers: number
   totalSuppliers: number
   lowStockProducts: Product[]
-  recentMovements: (StockMovement & { product: { name: string } | null })[]
   recentSales: (Sale & { customer: { name: string } | null })[]
+  monthlyResult: number
 }
 
 export function DashboardContent({
@@ -19,13 +19,13 @@ export function DashboardContent({
   totalCustomers,
   totalSuppliers,
   lowStockProducts,
-  recentMovements,
   recentSales,
+  monthlyResult,
 }: DashboardContentProps) {
   return (
     <div className="space-y-2">
       <ErpWindow title="Dashboard - Visão Geral">
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-5 gap-2 mb-4">
           <div className="erp-inset p-3 text-center">
             <div className="text-2xl font-bold text-[#000080]">{totalProducts}</div>
             <div className="text-[11px]">Produtos Cadastrados</div>
@@ -42,10 +42,16 @@ export function DashboardContent({
             <div className="text-2xl font-bold text-[#ff0000]">{lowStockProducts.length}</div>
             <div className="text-[11px]">Estoque Baixo</div>
           </div>
+          <div className="erp-inset p-3 text-center">
+            <div className={`text-2xl font-bold ${monthlyResult >= 0 ? 'text-[#008000]' : 'text-[#ff0000]'}`}>
+              R$ {monthlyResult.toFixed(2).replace('.', ',')}
+            </div>
+            <div className="text-[11px]">Resultado Mensal</div>
+          </div>
         </div>
       </ErpWindow>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         <ErpWindow title="Produtos com Estoque Baixo">
           <DataGrid
             columns={[
@@ -63,36 +69,6 @@ export function DashboardContent({
             ]}
             data={lowStockProducts}
             emptyMessage="Nenhum produto com estoque baixo"
-          />
-        </ErpWindow>
-
-        <ErpWindow title="Últimas Movimentações">
-          <DataGrid
-            columns={[
-              {
-                key: "created_at",
-                header: "Data",
-                width: "100px",
-                render: (item) => new Date(item.created_at).toLocaleDateString("pt-BR"),
-              },
-              {
-                key: "product",
-                header: "Produto",
-                render: (item) => item.product?.name || "-",
-              },
-              {
-                key: "movement_type",
-                header: "Tipo",
-                render: (item) => (
-                  <StatusBadge color={item.movement_type === "entrada" ? "green" : "red"}>
-                    {item.movement_type.toUpperCase()}
-                  </StatusBadge>
-                ),
-              },
-              { key: "quantity", header: "Qtd", align: "right" },
-            ]}
-            data={recentMovements}
-            emptyMessage="Nenhuma movimentação"
           />
         </ErpWindow>
       </div>

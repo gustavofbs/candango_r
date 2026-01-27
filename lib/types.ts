@@ -165,3 +165,27 @@ export interface StockMovement {
   notes: string | null
   created_at: string
 }
+
+export interface Company {
+  id: number
+  razao_social: string
+  nome_fantasia: string | null
+  cnpj: string
+  inscricao_estadual: string | null
+  cep: string
+  street: string
+  number: string
+  complement: string | null
+  neighborhood: string
+  city: string
+  state: string
+  phone: string
+  email: string
+  website: string | null
+  responsavel: string
+  logo: string | null
+  logo_url: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}

@@ -11,8 +11,8 @@ export default async function DashboardPage() {
         totalCustomers={data.totalCustomers}
         totalSuppliers={data.totalSuppliers}
         lowStockProducts={data.lowStockProducts}
-        recentMovements={data.recentMovements}
         recentSales={data.recentSales}
+        monthlyResult={data.monthlyResult}
       />
     )
   } catch (error) {
@@ -23,8 +23,8 @@ export default async function DashboardPage() {
         totalCustomers={0}
         totalSuppliers={0}
         lowStockProducts={[]}
-        recentMovements={[]}
         recentSales={[]}
+        monthlyResult={0}
       />
     )
   }

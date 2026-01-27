@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement
+from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement, Company
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -131,3 +131,25 @@ class StockMovementSerializer(serializers.ModelSerializer):
             'reference_id', 'notes', 'created_at'
         ]
         read_only_fields = ['id', 'total_price', 'created_at']
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Company
+        fields = [
+            'id', 'razao_social', 'nome_fantasia', 'cnpj', 'inscricao_estadual',
+            'cep', 'street', 'number', 'complement',
+            'neighborhood', 'city', 'state', 'phone', 'email', 'website',
+            'responsavel', 'logo', 'logo_url', 'active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'logo_url', 'created_at', 'updated_at']
+    
+    def get_logo_url(self, obj):
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
