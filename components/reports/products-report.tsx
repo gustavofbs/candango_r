@@ -77,15 +77,15 @@ export function ProductsReport() {
 
     // Preparar dados para o PDF
     const pdfData = selectedData.map(product => ({
+      "Código": product.code,
       "Nome": product.name,
-      "Quantidade": "1",
-      "Unidade": "un",
-      "Valor Unitário": `R$ ${Number(product.unit_price).toFixed(2)}`,
-      "Valor Total": `R$ ${Number(product.unit_price).toFixed(2)}`,
+      "Categoria": product.category_name || "",
+      "Preço Compra": `R$ ${Number(product.purchase_price).toFixed(2)}`,
+      "Estoque": product.current_stock.toString(),
     }))
 
     // Calcular total
-    const total = selectedData.reduce((sum, p) => sum + Number(p.unit_price), 0)
+    const total = selectedData.reduce((sum, p) => sum + Number(p.purchase_price), 0)
 
     // Montar endereço completo
     const address = [company.street, company.number, company.neighborhood].filter(Boolean).join(", ")
@@ -95,27 +95,22 @@ export function ProductsReport() {
       reportType: "Relatório de Produtos",
       reportDate: new Date().toLocaleDateString('pt-BR'),
       companyInfo: {
-        name: company.name,
+        name: company.nome_fantasia,
         cnpj: company.cnpj,
         address: address,
         city: city,
         phone: company.phone,
         email: company.email,
-        contact: company.contact_person || undefined,
+        contact: company.responsavel || undefined,
       },
       columns: [
+        { text: "Código", width: 70 },
         { text: "Nome", width: "*" },
-        { text: "Quantidade", width: 70, alignment: "center" },
-        { text: "Unidade", width: 60, alignment: "center" },
-        { text: "Valor Unitário", width: 80, alignment: "right" },
-        { text: "Valor Total", width: 80, alignment: "right" },
+        { text: "Categoria", width: 100 },
+        { text: "Preço Compra", width: 80, alignment: "right" },
+        { text: "Estoque", width: 60, alignment: "right" },
       ],
       data: pdfData,
-      totals: [
-        { label: "Total Produtos", value: `R$ ${total.toFixed(2)}` },
-        { label: "Subtotal", value: `R$ ${total.toFixed(2)}` },
-        { label: "Total Relatório", value: `R$ ${total.toFixed(2)}` },
-      ],
     })
   }
 
@@ -158,18 +153,11 @@ export function ProductsReport() {
           { key: "name", header: "Nome", width: "200px" },
           { key: "category_name", header: "Categoria", width: "120px" },
           {
-            key: "unit_price",
-            header: "Preço",
+            key: "purchase_price",
+            header: "Preço Compra",
             width: "100px",
             align: "right",
-            render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
-          },
-          {
-            key: "unit_cost",
-            header: "Custo",
-            width: "100px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
+            render: (item) => `R$ ${Number(item.purchase_price).toFixed(2)}`,
           },
           {
             key: "current_stock",

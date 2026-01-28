@@ -78,7 +78,7 @@ export function CustomersReport() {
     // Preparar dados para o PDF
     const pdfData = selectedData.map(customer => ({
       "Nome": customer.name,
-      "CPF/CNPJ": customer.cpf_cnpj,
+      "CPF/CNPJ": customer.document,
       "Telefone": customer.phone,
       "Email": customer.email,
     }))
@@ -91,13 +91,13 @@ export function CustomersReport() {
       reportType: "Relatório de Clientes",
       reportDate: new Date().toLocaleDateString('pt-BR'),
       companyInfo: {
-        name: company.name,
+        name: company.nome_fantasia,
         cnpj: company.cnpj,
         address: address,
         city: city,
         phone: company.phone,
         email: company.email,
-        contact: company.contact_person || undefined,
+        contact: company.responsavel || undefined,
       },
       columns: [
         { text: "Nome", width: "*" },

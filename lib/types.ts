@@ -19,6 +19,7 @@ export interface Product {
   min_stock: number
   max_stock: number
   location: string | null
+  supplier_name?: string | null
   active: boolean
   created_at: string
   updated_at: string

@@ -67,7 +67,7 @@ export function SalesReport() {
     filteredSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
-          const calculatedTax = (Number(item.total_price) * Number(sale.tax_percent || 0)) / 100
+          const calculatedTax = (Number(item.total_price) * Number(sale.tax_percentage || 0)) / 100
           rows.push({
             id: `${sale.id}-${item.id}`,
             sale_id: sale.id,
@@ -162,11 +162,18 @@ export function SalesReport() {
 
     // Preparar dados para o PDF
     const pdfData = selectedData.map(row => ({
-      "Nome": row.product_name,
+      "Venda": row.sale_number,
+      "Data": new Date(row.sale_date).toLocaleDateString('pt-BR'),
+      "UF": row.customer_state,
+      "Cliente": row.customer_name,
+      "Produto": row.product_name,
       "Quantidade": row.quantity.toString(),
-      "Unidade": "un",
       "Valor Unitário": `R$ ${Number(row.unit_price).toFixed(2)}`,
       "Valor Total": `R$ ${Number(row.total_price).toFixed(2)}`,
+      "Custo Total": `R$ ${Number(row.total_cost).toFixed(2)}`,
+      "Imposto": `R$ ${Number(row.tax).toFixed(2)}`,
+      "Frete": `R$ ${Number(row.freight).toFixed(2)}`,
+      "Lucro": `R$ ${Number(row.profit).toFixed(2)}`,
     }))
 
     // Montar endereço completo
@@ -177,28 +184,31 @@ export function SalesReport() {
       reportType: "Relatório de Vendas",
       reportDate: new Date().toLocaleDateString('pt-BR'),
       companyInfo: {
-        name: company.name,
+        name: company.nome_fantasia,
         cnpj: company.cnpj,
         address: address,
         city: city,
         phone: company.phone,
         email: company.email,
-        contact: company.contact_person || undefined,
+        contact: company.responsavel || undefined,
       },
       columns: [
-        { text: "Nome", width: "*" },
-        { text: "Quantidade", width: 70, alignment: "center" },
-        { text: "Unidade", width: 60, alignment: "center" },
-        { text: "Valor Unitário", width: 80, alignment: "right" },
-        { text: "Valor Total", width: 80, alignment: "right" },
+        { text: "Venda", width: 50 },
+        { text: "Data", width: 55 },
+        { text: "UF", width: 30 },
+        { text: "Cliente", width: 70 },
+        { text: "Produto", width: 80 },
+        { text: "Quantidade", width: 50, alignment: "right" },
+        { text: "Valor Unitário", width: 55, alignment: "right" },
+        { text: "Valor Total", width: 55, alignment: "right" },
+        { text: "Custo Total", width: 55, alignment: "right" },
+        { text: "Imposto", width: 50, alignment: "right" },
+        { text: "Frete", width: 45, alignment: "right" },
+        { text: "Lucro", width: 50, alignment: "right" },
       ],
       data: pdfData,
-      totals: [
-        { label: "Total Produtos", value: `R$ ${selectedTotals.total_price.toFixed(2)}` },
-        { label: "Subtotal", value: `R$ ${selectedTotals.total_price.toFixed(2)}` },
-        { label: "Total Relatório", value: `R$ ${selectedTotals.total_price.toFixed(2)}` },
-      ],
       observations: `Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
+      orientation: "landscape",
     })
   }
 

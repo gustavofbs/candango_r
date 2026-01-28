@@ -7,13 +7,13 @@ if (pdfMake.vfs === undefined) {
 }
 
 interface CompanyInfo {
-  name: string
+  name: string | null
   cnpj: string
   address: string
   city: string
   phone: string
   email: string
-  contact?: string
+  contact?: string | null
 }
 
 interface TableColumn {
@@ -35,6 +35,7 @@ interface PDFOptions {
   data: any[]
   totals?: { label: string; value: string }[]
   observations?: string
+  orientation?: "portrait" | "landscape"
 }
 
 export function generatePDF(options: PDFOptions) {
@@ -48,6 +49,7 @@ export function generatePDF(options: PDFOptions) {
     data,
     totals,
     observations,
+    orientation = "portrait",
   } = options
 
   // Cabeçalho da tabela
@@ -74,7 +76,7 @@ export function generatePDF(options: PDFOptions) {
         {
           width: "*",
           stack: [
-            { text: companyInfo.name, style: "companyName" },
+            { text: companyInfo.name || "Empresa", style: "companyName" },
             { text: companyInfo.cnpj, style: "companyInfo" },
             { text: companyInfo.address, style: "companyInfo" },
             { text: `${companyInfo.city}`, style: "companyInfo" },
@@ -91,7 +93,7 @@ export function generatePDF(options: PDFOptions) {
           ],
         },
       ],
-      margin: [0, 0, 0, 15],
+      margin: [0, 0, 0, 10],
     },
   ]
 
@@ -112,35 +114,13 @@ export function generatePDF(options: PDFOptions) {
     })
   }
 
-  // Data do Relatório
+  // Título do relatório centralizado
+  const reportTitle = reportNumber ? `${reportType.toUpperCase()} Nº ${reportNumber}` : reportType.toUpperCase()
   content.push({
-    columns: [
-      { text: "", width: "*" },
-      { text: `Data: ${reportDate}`, style: "reportDate", width: "auto" },
-    ],
-    margin: [0, 0, 0, 10],
-  })
-
-  // Número/Título do Relatório
-  if (reportNumber) {
-    content.push({
-      text: `${reportType.toUpperCase()} Nº ${reportNumber}`,
-      style: "reportTitle",
-      margin: [0, 0, 0, 15],
-    })
-  } else {
-    content.push({
-      text: reportType.toUpperCase(),
-      style: "reportTitle",
-      margin: [0, 0, 0, 15],
-    })
-  }
-
-  // Seção de Produtos/Itens
-  content.push({
-    text: "Produtos",
-    style: "sectionTitle",
-    margin: [0, 0, 0, 5],
+    text: reportTitle,
+    style: "reportTitle",
+    alignment: "center",
+    margin: [0, 0, 0, 15],
   })
 
   // Tabela de dados
@@ -158,86 +138,42 @@ export function generatePDF(options: PDFOptions) {
       vLineWidth: () => 0,
       hLineColor: () => "#CCCCCC",
     },
-    margin: [0, 0, 0, 10],
+    margin: [0, 0, 0, 15],
   })
 
-  // Totais
-  if (totals && totals.length > 0) {
-    const totalsTable: any[] = []
-
-    totals.forEach((total) => {
-      totalsTable.push([
-        { text: total.label, alignment: "right", border: [false, false, false, false], fontSize: 10 },
-        {
-          text: total.value,
-          alignment: "right",
-          border: [false, false, false, false],
-          fontSize: 10,
-          bold: total.label.includes("Total"),
-        },
-      ])
-    })
-
-    content.push({
-      table: {
-        widths: ["*", 100],
-        body: totalsTable,
-      },
-      layout: "noBorders",
-      margin: [0, 5, 0, 15],
-    })
-  }
-
-  // Observações
+  // Observações e Data alinhadas à direita
+  const footerItems: any[] = []
+  
   if (observations) {
-    content.push({
+    footerItems.push({
       text: "Observações",
-      style: "sectionTitle",
-      margin: [0, 10, 0, 5],
+      fontSize: 9,
+      bold: true,
+      margin: [0, 0, 0, 2],
     })
-
-    content.push({
+    footerItems.push({
       text: observations,
       fontSize: 9,
-      margin: [0, 0, 0, 30],
+      margin: [0, 0, 0, 10],
     })
   }
 
-  // Assinatura
+  footerItems.push({
+    text: `Data: ${reportDate}`,
+    fontSize: 9,
+    margin: [0, 0, 0, 0],
+  })
+
   content.push({
-    stack: [
-      {
-        canvas: [
-          {
-            type: "line",
-            x1: 200,
-            y1: 0,
-            x2: 350,
-            y2: 0,
-            lineWidth: 1,
-          },
-        ],
-        margin: [0, 40, 0, 5],
-      },
-      {
-        text: companyInfo.name,
-        alignment: "center",
-        fontSize: 10,
-        bold: true,
-      },
-      {
-        text: companyInfo.contact || "",
-        alignment: "center",
-        fontSize: 9,
-      },
-    ],
-    absolutePosition: { x: 0, y: 700 },
+    stack: footerItems,
+    alignment: "right",
+    margin: [0, 0, 0, 0],
   })
 
   // Definição do documento
   const docDefinition: any = {
     pageSize: "A4",
-    pageOrientation: "portrait",
+    pageOrientation: orientation,
     pageMargins: [40, 40, 40, 40],
     content,
     styles: {
