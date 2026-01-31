@@ -48,20 +48,29 @@ echo.
 echo [OK] Containers iniciados com sucesso!
 echo.
 echo Aguardando aplicacao ficar pronta...
-timeout /t 10 /nobreak >nul
+timeout /t 15 /nobreak >nul
 
-REM Iniciar Electron
+REM Abrir navegador
 echo.
-echo Abrindo aplicacao...
-cd electron
-call pnpm start
+echo Abrindo navegador...
+start http://localhost:3000
 
-REM Parar containers ao fechar
-cd ..
+echo.
+echo ========================================
+echo   Aplicacao rodando!
+echo ========================================
+echo.
+echo Frontend: http://localhost:3000
+echo Backend:  http://localhost:8000
+echo.
+echo Pressione qualquer tecla para PARAR a aplicacao...
+pause >nul
+
 echo.
 echo Parando containers...
 docker-compose down
 
 echo.
 echo Aplicacao encerrada.
+echo.
 pause
