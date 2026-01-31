@@ -1,0 +1,36 @@
+{
+  "name": "candango-r-desktop",
+  "version": "1.0.0",
+  "description": "Candango R - Sistema ERP Desktop",
+  "main": "main.js",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.candango.erp",
+    "productName": "Candango R",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "icon.ico"
+    ]
+  },
+  "dependencies": {
+    "electron": "^28.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.9.1"
+  }
+}
