@@ -17,6 +17,11 @@ interface ProductFormProps {
 
 export function ProductForm({ product, categories, onSave, onCancel }: ProductFormProps) {
   const safeCategories = Array.isArray(categories) ? categories : []
+  
+  // Debug: verificar categorias recebidas
+  console.log('ProductForm - Categorias recebidas:', categories)
+  console.log('ProductForm - SafeCategories:', safeCategories)
+  
   const [formData, setFormData] = useState({
     name: product?.name || "",
     composition: product?.composition || "",

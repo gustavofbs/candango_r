@@ -1,24 +1,25 @@
-FROM node:22-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Argumentos de build
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Copiar package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package*.json ./
 
 # Instalar dependências
-RUN pnpm install --frozen-lockfile
+RUN npm install --legacy-peer-deps
 
 # Copiar código
 COPY . .
 
 # Build da aplicação
-RUN pnpm run build
+RUN npm run build
 
 # Expor porta
 EXPOSE 3000
 
 # Comando para iniciar
-CMD ["pnpm", "start"]
+CMD ["npm", "start"]

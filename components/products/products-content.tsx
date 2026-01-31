@@ -1,32 +1,54 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { ProductForm } from "@/components/products/product-form"
 import type { Product, Category } from "@/lib/types"
-import { productsApi } from "@/lib/api"
+import { productsApi, categoriesApi } from "@/lib/api"
 
 interface ProductsContentProps {
   initialProducts: Product[]
   categories: Category[]
 }
 
-export function ProductsContent({ initialProducts, categories }: ProductsContentProps) {
+export function ProductsContent({ initialProducts, categories: initialCategories }: ProductsContentProps) {
   const [products, setProducts] = useState(Array.isArray(initialProducts) ? initialProducts : [])
+  const [categories, setCategories] = useState(Array.isArray(initialCategories) ? initialCategories : [])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [filter, setFilter] = useState("")
 
+  // Buscar categorias dinamicamente quando o formulário abre
+  useEffect(() => {
+    if (showForm) {
+      refreshCategories()
+    }
+  }, [showForm])
+
+  const refreshCategories = async () => {
+    try {
+      const data = await categoriesApi.getAll()
+      console.log('Categories refreshed:', data)
+      setCategories(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Erro ao atualizar categorias:", error)
+    }
+  }
+
   const refreshProducts = async () => {
     try {
+      console.log('Refreshing products...')
       const data = await productsApi.getAll()
+      console.log('Products received:', data)
       setProducts(Array.isArray(data) ? data : [])
+      console.log('Products state updated')
     } catch (error) {
       console.error("Erro ao atualizar produtos:", error)
+      alert(`Erro ao carregar produtos: ${error}`)
     }
   }
 

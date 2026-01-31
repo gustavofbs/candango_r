@@ -1,6 +1,10 @@
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
 import { dashboardApi } from "@/lib/api"
 
+// Desabilitar cache para sempre buscar dados frescos
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function DashboardPage() {
   try {
     const data = await dashboardApi.getData()

@@ -2,6 +2,10 @@ import { SalesContent } from "@/components/sales/sales-content"
 import { salesApi, customersApi, productsApi } from "@/lib/api"
 import type { Customer, Product } from "@/lib/types"
 
+// Desabilitar cache para sempre buscar dados frescos
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function SalesPage() {
   try {
     const [sales, customers, products] = await Promise.all([
