@@ -114,9 +114,46 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         sale = Sale.objects.create(**validated_data)
         
         for item_data in items_data:
-            SaleItem.objects.create(sale=sale, **item_data)
+            sale_item = SaleItem.objects.create(sale=sale, **item_data)
+            
+            # Reduzir estoque do produto automaticamente
+            product = sale_item.product
+            quantity = float(sale_item.quantity)
+            
+            # Atualizar estoque atual do produto
+            product.current_stock = float(product.current_stock) - quantity
+            product.save()
         
         return sale
+    
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop('items', None)
+        
+        # Reverter estoque dos itens antigos
+        for old_item in instance.items.all():
+            product = old_item.product
+            product.current_stock = float(product.current_stock) + float(old_item.quantity)
+            product.save()
+        
+        # Atualizar campos da venda
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Deletar itens antigos e criar novos
+        if items_data is not None:
+            instance.items.all().delete()
+            
+            for item_data in items_data:
+                sale_item = SaleItem.objects.create(sale=instance, **item_data)
+                
+                # Reduzir estoque do produto
+                product = sale_item.product
+                quantity = float(sale_item.quantity)
+                product.current_stock = float(product.current_stock) - quantity
+                product.save()
+        
+        return instance
 
 
 class StockMovementSerializer(serializers.ModelSerializer):

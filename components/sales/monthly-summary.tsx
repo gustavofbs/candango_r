@@ -37,13 +37,10 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     // Expande cada venda em linhas por item
     const rows: any[] = []
     const saleMap: Record<string, Sale> = {}
-    
+
     sortedSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
-          // Calcula imposto baseado no percentual sobre o valor total
-          const calculatedTax = (Number(item.total_price) * Number(sale.tax_percentage || 0)) / 100
-          
           const rowId = `${sale.id}-${item.id}`
           const totalCost = Number(item.unit_cost) * Number(item.quantity)
           
@@ -62,8 +59,6 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             total_price: item.total_price,
             unit_cost: item.unit_cost,
             total_cost: totalCost,
-            tax: calculatedTax,
-            freight: item.freight,
             profit: item.profit,
             status: sale.status,
           })
@@ -84,8 +79,6 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       total_price: acc.total_price + Number(row.total_price),
       unit_cost: acc.unit_cost + Number(row.unit_cost),
       total_cost: acc.total_cost + Number(row.total_cost),
-      tax: acc.tax + Number(row.tax),
-      freight: acc.freight + Number(row.freight),
       profit: acc.profit + Number(row.profit),
     }), {
       quantity: 0,
@@ -93,12 +86,10 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       total_price: 0,
       unit_cost: 0,
       total_cost: 0,
-      tax: 0,
-      freight: 0,
       profit: 0,
     })
-    
-    // Calcula médias para unit_price e unit_cost
+
+    // Calcula média para unit_price e unit_cost
     return {
       ...sums,
       unit_price: rowCount > 0 ? sums.unit_price / rowCount : 0,
@@ -128,35 +119,28 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             key: "sale_date",
             header: "Data",
             width: "100px",
-            render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            render: (item) => new Date(item.sale_date).toLocaleDateString('pt-BR'),
           },
           { key: "customer_state", header: "UF", width: "50px" },
           {
             key: "sale_type",
             header: "Tipo",
             width: "80px",
-            render: (item) => {
-              const typeMap: Record<string, string> = {
-                venda: "Venda",
-                dispensa: "Dispensa",
-                pregao: "Pregão",
-              }
-              return typeMap[item.sale_type] || item.sale_type
-            },
+            render: (item) => item.sale_type === "venda" ? "Venda" : "Retorno",
           },
           { key: "customer_name", header: "Cliente", width: "150px" },
           { key: "product_name", header: "Produto", width: "150px" },
           { key: "nf", header: "NF", width: "100px" },
-          { 
-            key: "quantity", 
-            header: "Quantidade", 
-            width: "80px", 
+          {
+            key: "quantity",
+            header: "Quantidade",
+            width: "80px",
             align: "right",
-            render: (item) => Number(item.quantity).toFixed(0),
+            render: (item) => Number(item.quantity).toFixed(2),
           },
           {
             key: "unit_price",
-            header: "Valor Unit.",
+            header: "Valor Uni.",
             width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
@@ -183,20 +167,6 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             render: (item) => `R$ ${Number(item.total_cost).toFixed(2)}`,
           },
           {
-            key: "tax",
-            header: "Imposto",
-            width: "90px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.tax).toFixed(2)}`,
-          },
-          {
-            key: "freight",
-            header: "Frete",
-            width: "80px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.freight).toFixed(2)}`,
-          },
-          {
             key: "profit",
             header: "Lucro",
             width: "100px",
@@ -212,10 +182,10 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
                 disputa: { label: "Disputa", color: "red" },
                 homologado: { label: "Homologado", color: "yellow" },
                 producao: { label: "Produção", color: "cyan" },
-                aguardando_pagamento: { label: "Aguard. Pag.", color: "orange" },
+                aguardando_pagamento: { label: "Aguard.Pag.", color: "orange" },
                 liquidado: { label: "Liquidado", color: "green" },
               }
-              const status = statusMap[item.status] || { label: item.status, color: "white" as const }
+              const status = statusMap[item.status] || { label: item.status, color: "yellow" as const }
               return (
                 <StatusBadge color={status.color}>
                   {status.label}
@@ -239,27 +209,21 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
 
       <div className="mt-2 text-[11px] erp-inset p-2">
         <div className="font-bold mb-1">Resumo &gt;&gt;</div>
-        <div className="grid grid-cols-8 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           <div>
-            <span className="font-bold">Quant:</span> {totals.quantity.toFixed(0)}
+            <span className="font-bold">Quan.:</span> {totals.quantity.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">V. Unit:</span> R$ {totals.unit_price.toFixed(2)}
+            <span className="font-bold">V. Unit.:</span> R$ {totals.unit_price.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">V. Total:</span> R$ {totals.total_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">C. Unit:</span> R$ {totals.unit_cost.toFixed(2)}
+            <span className="font-bold">C. Unit.:</span> R$ {totals.unit_cost.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">C. Total:</span> R$ {totals.total_cost.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">Imposto:</span> R$ {totals.tax.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">Frete:</span> R$ {totals.freight.toFixed(2)}
           </div>
           <div>
             <span className="font-bold">Lucro:</span> R$ {totals.profit.toFixed(2)}

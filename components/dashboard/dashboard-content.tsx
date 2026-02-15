@@ -84,9 +84,9 @@ export function DashboardContent({
               render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR"),
             },
             {
-              key: "customer",
+              key: "customer_name",
               header: "Cliente",
-              render: (item) => item.customer?.name || "Cliente não informado",
+              render: (item) => item.customer_name || "Cliente não informado",
             },
             {
               key: "final_amount",
@@ -97,13 +97,20 @@ export function DashboardContent({
             {
               key: "status",
               header: "Status",
-              render: (item) => (
-                <StatusBadge
-                  color={item.status === "concluida" ? "green" : item.status === "pendente" ? "yellow" : "red"}
-                >
-                  {item.status.toUpperCase()}
-                </StatusBadge>
-              ),
+              render: (item) => {
+                const statusColors: Record<string, "green" | "yellow" | "red"> = {
+                  liquidado: "green",
+                  concluida: "green",
+                  pendente: "yellow",
+                  disputa: "red",
+                  cancelada: "red",
+                }
+                return (
+                  <StatusBadge color={statusColors[item.status] || "yellow"}>
+                    {item.status.toUpperCase()}
+                  </StatusBadge>
+                )
+              },
             },
           ]}
           data={recentSales}
