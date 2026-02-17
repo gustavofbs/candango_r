@@ -34,9 +34,19 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
   const safeCustomers = Array.isArray(customers) ? customers : []
   const safeProducts = Array.isArray(products) ? products : []
   const [saleNumber, setSaleNumber] = useState(sale?.sale_number || "")
+  
+  // Função para obter data local no formato YYYY-MM-DD
+  const getLocalDateString = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
   const [formData, setFormData] = useState({
     customer_id: sale?.customer?.toString() || "",
-    sale_date: sale?.sale_date || new Date().toISOString().split("T")[0],
+    sale_date: sale?.sale_date || getLocalDateString(),
     sale_type: sale?.sale_type || "venda",
     payment_method: sale?.payment_method || "dinheiro",
     nf: sale?.nf || "",

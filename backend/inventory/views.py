@@ -199,7 +199,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     ordering = ['-sale_date', '-created_at']
     
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action in ['create', 'update', 'partial_update']:
             return SaleCreateSerializer
         return SaleSerializer
     

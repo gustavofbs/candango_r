@@ -101,6 +101,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
 class SaleCreateSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True)
+    sale_date = serializers.DateField(input_formats=['%Y-%m-%d', 'iso-8601'])
     
     class Meta:
         model = Sale
@@ -108,6 +109,24 @@ class SaleCreateSerializer(serializers.ModelSerializer):
             'sale_number', 'sale_type', 'customer', 'sale_date', 'total_amount',
             'discount', 'payment_method', 'nf', 'tax_percentage', 'status', 'notes', 'items'
         ]
+    
+    def validate_sale_date(self, value):
+        """Garante que a data seja interpretada corretamente sem conversão de timezone"""
+        from datetime import datetime, date
+        
+        # Se for string, converte para date
+        if isinstance(value, str):
+            try:
+                value = datetime.strptime(value, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        # Se for datetime, pega apenas a data
+        if isinstance(value, datetime):
+            value = value.date()
+        
+        print(f"Data validada: {value} (tipo: {type(value)})")
+        return value
     
     def create(self, validated_data):
         items_data = validated_data.pop('items')

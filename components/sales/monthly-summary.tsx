@@ -119,7 +119,11 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             key: "sale_date",
             header: "Data",
             width: "100px",
-            render: (item) => new Date(item.sale_date).toLocaleDateString('pt-BR'),
+            render: (item) => {
+              // Evita problema de timezone ao converter string de data
+              const [year, month, day] = item.sale_date.split('-')
+              return `${day}/${month}/${year}`
+            },
           },
           { key: "customer_state", header: "UF", width: "50px" },
           {
