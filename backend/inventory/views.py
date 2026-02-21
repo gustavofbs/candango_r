@@ -291,6 +291,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
 def dashboard_view(request):
     """
     Endpoint para retornar dados do dashboard
+    Aceita parâmetros opcionais: month (1-12) e year (YYYY)
     """
     from datetime import datetime
     from django.db.models import Sum
@@ -306,23 +307,22 @@ def dashboard_view(request):
         
         recent_sales = Sale.objects.select_related('customer')[:5]
         
-        # Calcular resultado mensal (Lucro de Vendas - Despesas do mês atual)
+        # Obter mês e ano dos parâmetros ou usar mês/ano atual
         now = datetime.now()
-        current_month = now.month
-        current_year = now.year
+        month = int(request.query_params.get('month', now.month))
+        year = int(request.query_params.get('year', now.year))
         
-        # Lucro total das vendas do mês atual (soma do profit dos SaleItem de vendas liquidadas)
+        # Lucro total das vendas do mês (TODAS as vendas, independente do status)
         monthly_profit = SaleItem.objects.filter(
-            sale__sale_date__month=current_month,
-            sale__sale_date__year=current_year,
-            sale__status='liquidado'
+            sale__sale_date__month=month,
+            sale__sale_date__year=year
         ).aggregate(total=Sum('profit'))['total'] or 0
         
-        # Total de despesas do mês atual (active = True)
+        # Total de despesas do mês (active = True)
         try:
             monthly_expenses = Expense.objects.filter(
-                date__month=current_month,
-                date__year=current_year,
+                date__month=month,
+                date__year=year,
                 active=True
             ).aggregate(total=Sum('amount'))['total'] or 0
         except Exception as e:
@@ -332,6 +332,24 @@ def dashboard_view(request):
         # Resultado = Lucro - Despesas
         monthly_result = float(monthly_profit) - float(monthly_expenses)
         
+        # Resultado Acumulado (de janeiro até o mês selecionado)
+        cumulative_profit = SaleItem.objects.filter(
+            sale__sale_date__month__lte=month,
+            sale__sale_date__year=year
+        ).aggregate(total=Sum('profit'))['total'] or 0
+        
+        try:
+            cumulative_expenses = Expense.objects.filter(
+                date__month__lte=month,
+                date__year=year,
+                active=True
+            ).aggregate(total=Sum('amount'))['total'] or 0
+        except Exception as e:
+            print(f"Erro ao buscar despesas acumuladas: {e}")
+            cumulative_expenses = 0
+        
+        cumulative_result = float(cumulative_profit) - float(cumulative_expenses)
+        
         data = {
             'totalProducts': total_products,
             'totalCustomers': total_customers,
@@ -339,6 +357,11 @@ def dashboard_view(request):
             'lowStockProducts': ProductSerializer(low_stock_products, many=True).data,
             'recentSales': SaleSerializer(recent_sales, many=True).data,
             'monthlyResult': monthly_result,
+            'monthlyProfit': float(monthly_profit),
+            'monthlyExpenses': float(monthly_expenses),
+            'cumulativeResult': cumulative_result,
+            'selectedMonth': month,
+            'selectedYear': year,
         }
         
         return Response(data)

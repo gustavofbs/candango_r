@@ -1,27 +1,66 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { StatusBadge } from "@/components/erp/status-badge"
 import type { Product, Sale } from "@/lib/types"
+import { dashboardApi } from "@/lib/api"
 
-interface DashboardContentProps {
+interface DashboardData {
   totalProducts: number
   totalCustomers: number
   totalSuppliers: number
   lowStockProducts: Product[]
-  recentSales: (Sale & { customer: { name: string } | null })[]
+  recentSales: Sale[]
   monthlyResult: number
+  monthlyProfit: number
+  monthlyExpenses: number
+  cumulativeResult: number
+  selectedMonth: number
+  selectedYear: number
 }
 
-export function DashboardContent({
-  totalProducts,
-  totalCustomers,
-  totalSuppliers,
-  lowStockProducts,
-  recentSales,
-  monthlyResult,
-}: DashboardContentProps) {
+export function DashboardContent() {
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  const formatCurrency = (value: number): string => {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const result = await dashboardApi.getData(selectedMonth, selectedYear)
+      setData(result)
+    } catch (error) {
+      console.error("Erro ao carregar dashboard:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [selectedMonth, selectedYear])
+
+  if (loading || !data) {
+    return (
+      <div className="space-y-2">
+        <ErpWindow title="Dashboard - Visão Geral">
+          <div className="p-4 text-center">Carregando...</div>
+        </ErpWindow>
+      </div>
+    )
+  }
+
+  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, monthlyResult, monthlyProfit, monthlyExpenses, cumulativeResult } = data
   return (
     <div className="space-y-2">
       <ErpWindow title="Dashboard - Visão Geral">
@@ -39,15 +78,59 @@ export function DashboardContent({
             <div className="text-[11px]">Fornecedores</div>
           </div>
           <div className="erp-inset p-3 text-center">
-            <div className="text-2xl font-bold text-[#ff0000]">{lowStockProducts.length}</div>
-            <div className="text-[11px]">Estoque Baixo</div>
+            <div
+              className={`text-2xl font-bold ${
+                cumulativeResult >= 0 ? "text-[#008000]" : "text-[#FF0000]"
+              }`}
+            >
+              R$ {formatCurrency(cumulativeResult)}
+            </div>
+            <div className="text-[11px]">Resultado Acumulado</div>
           </div>
           <div className="erp-inset p-3 text-center">
-            <div className={`text-2xl font-bold ${monthlyResult >= 0 ? 'text-[#008000]' : 'text-[#ff0000]'}`}>
-              R$ {monthlyResult.toFixed(2).replace('.', ',')}
+            <div
+              className={`text-2xl font-bold ${
+                monthlyResult >= 0 ? "text-[#008000]" : "text-[#FF0000]"
+              }`}
+            >
+              R$ {formatCurrency(monthlyResult)}
             </div>
             <div className="text-[11px]">Resultado Mensal</div>
+            <div className="text-[9px] text-gray-600 mt-1">
+              Lucro: R$ {formatCurrency(monthlyProfit)} - Despesas: R$ {formatCurrency(monthlyExpenses)}
+            </div>
           </div>
+        </div>
+
+        <div className="mb-4 flex items-center gap-2">
+          <label className="text-[11px] font-bold">Período:</label>
+          <select
+            className="erp-select"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+          >
+            <option value={1}>Janeiro</option>
+            <option value={2}>Fevereiro</option>
+            <option value={3}>Março</option>
+            <option value={4}>Abril</option>
+            <option value={5}>Maio</option>
+            <option value={6}>Junho</option>
+            <option value={7}>Julho</option>
+            <option value={8}>Agosto</option>
+            <option value={9}>Setembro</option>
+            <option value={10}>Outubro</option>
+            <option value={11}>Novembro</option>
+            <option value={12}>Dezembro</option>
+          </select>
+          <select
+            className="erp-select"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          >
+            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
       </ErpWindow>
 
