@@ -55,13 +55,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
 class ProductionCostSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_code = serializers.CharField(source='product.code', read_only=True)
+    customer_name = serializers.CharField(source='customer.name', read_only=True, allow_null=True)
     locked_by_sale_number = serializers.CharField(source='locked_by_sale.sale_number', read_only=True, allow_null=True)
     locked_by_sale_customer = serializers.CharField(source='locked_by_sale.customer.name', read_only=True, allow_null=True)
     
     class Meta:
         model = ProductionCost
         fields = [
-            'id', 'product', 'product_name', 'product_code', 'description', 
+            'id', 'product', 'product_name', 'product_code', 'customer', 'customer_name', 'description', 
             'cost_type', 'value', 'date', 'notes',
             'refinement_code', 'refinement_name', 'is_locked', 
             'locked_by_sale', 'locked_by_sale_number', 'locked_by_sale_customer', 'locked_at', 'created_at'

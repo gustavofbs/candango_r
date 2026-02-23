@@ -78,6 +78,8 @@ export interface ProductionCost {
   product: number
   product_name?: string
   product_code?: string
+  customer?: number | null
+  customer_name?: string | null
   description: string
   cost_type: string
   cost_type_display?: string
@@ -89,6 +91,7 @@ export interface ProductionCost {
   is_locked: boolean
   locked_by_sale?: number | null
   locked_by_sale_number?: string | null
+  locked_by_sale_customer?: string | null
   locked_at?: string | null
   created_at: string
 }

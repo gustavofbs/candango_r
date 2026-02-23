@@ -5,11 +5,12 @@ import { useState } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import { DataGrid } from "@/components/erp/data-grid"
-import type { Product } from "@/lib/types"
+import type { Product, Customer } from "@/lib/types"
 import { costsApi } from "@/lib/api"
 
 interface RefinementFormProps {
   products: Product[]
+  customers: Customer[]
   onSave: () => void
   onCancel: () => void
 }
@@ -32,10 +33,12 @@ const DEFAULT_COST_TYPES = [
   { value: "tipo_tecido", label: "Tipo de tecido" },
 ]
 
-export function RefinementForm({ products, onSave, onCancel }: RefinementFormProps) {
+export function RefinementForm({ products, customers, onSave, onCancel }: RefinementFormProps) {
   const safeProducts = Array.isArray(products) ? products : []
+  const safeCustomers = Array.isArray(customers) ? customers : []
   
   const [formData, setFormData] = useState({
+    customer_id: "",
     product_id: "",
     date: new Date().toISOString().split("T")[0],
   })
@@ -122,6 +125,7 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
       for (const cost of costs) {
         await costsApi.create({
           product: Number(formData.product_id),
+          customer: formData.customer_id ? Number(formData.customer_id) : null,
           description: "",
           cost_type: cost.cost_type,
           value: cost.value,
@@ -147,6 +151,21 @@ export function RefinementForm({ products, onSave, onCancel }: RefinementFormPro
       <form onSubmit={handleSubmit}>
         <FieldGroup label="Dados do Refinamento">
           <div className="space-y-2">
+            <FormField label="Cliente:" inline>
+              <select
+                className="erp-select w-full"
+                value={formData.customer_id}
+                onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+              >
+                <option value="">Nenhum (Pendente)</option>
+                {safeCustomers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
             <FormField label="Produto:" inline>
               <select
                 className="erp-select w-full"

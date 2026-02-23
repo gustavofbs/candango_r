@@ -203,6 +203,14 @@ class ProductionCost(models.Model):
         related_name='production_costs',
         verbose_name='Produto'
     )
+    customer = models.ForeignKey(
+        'Customer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='production_costs',
+        verbose_name='Cliente'
+    )
     description = models.CharField(max_length=200, blank=True, default='', verbose_name='Descrição')
     cost_type = models.CharField(max_length=50, verbose_name='Tipo de Custo')
     value = models.DecimalField(
@@ -270,8 +278,10 @@ class ProductionCost(models.Model):
 class Sale(models.Model):
     STATUS_CHOICES = [
         ('disputa', 'Disputa'),
+        ('aguardando_julgamento', 'Aguardando Julgamento'),
         ('homologado', 'Homologado'),
-        ('producao', 'Produção'),
+        ('em_producao', 'Em Produção'),
+        ('em_transito', 'Em Trânsito'),
         ('aguardando_pagamento', 'Aguardando Pagamento'),
         ('liquidado', 'Liquidado'),
     ]
@@ -348,7 +358,7 @@ class Sale(models.Model):
         verbose_name='Percentual de Imposto (%)',
         help_text='Percentual de imposto aplicado sobre o valor total'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente', verbose_name='Status')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='disputa', verbose_name='Status')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
 
@@ -561,6 +571,7 @@ class Company(models.Model):
     nome_fantasia = models.CharField(max_length=200, blank=True, null=True, verbose_name='Nome Fantasia')
     cnpj = models.CharField(max_length=18, unique=True, verbose_name='CNPJ')
     inscricao_estadual = models.CharField(max_length=20, blank=True, null=True, verbose_name='Inscrição Estadual')
+    inscricao_municipal = models.CharField(max_length=20, blank=True, null=True, verbose_name='Inscrição Municipal')
     
     # Endereço
     cep = models.CharField(max_length=9, verbose_name='CEP')

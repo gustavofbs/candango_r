@@ -118,7 +118,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 
 class ProductionCostViewSet(viewsets.ModelViewSet):
-    queryset = ProductionCost.objects.select_related('product').all()
+    queryset = ProductionCost.objects.select_related('product', 'customer', 'locked_by_sale').all()
     serializer_class = ProductionCostSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['description', 'product__name', 'refinement_code', 'refinement_name']

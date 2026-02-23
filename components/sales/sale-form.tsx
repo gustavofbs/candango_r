@@ -401,8 +401,10 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 >
                   <option value="disputa">Disputa</option>
+                  <option value="aguardando_julgamento">Aguardando Julgamento</option>
                   <option value="homologado">Homologado</option>
-                  <option value="producao">Produção</option>
+                  <option value="em_producao">Em Produção</option>
+                  <option value="em_transito">Em Trânsito</option>
                   <option value="aguardando_pagamento">Aguardando Pagamento</option>
                   <option value="liquidado">Liquidado</option>
                 </select>

@@ -7,12 +7,14 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
 import { StatusBadge } from "@/components/erp/status-badge"
 import { RefinementForm } from "@/components/costs/refinement-form"
-import type { ProductionCost, Product } from "@/lib/types"
+import { EditCostsForm } from "@/components/costs/edit-costs-form"
+import type { ProductionCost, Product, Customer } from "@/lib/types"
 import { costsApi } from "@/lib/api"
 
 interface CostsContentProps {
   initialCosts: (ProductionCost & { product: { name: string; code: string } | null })[]
   products: Product[]
+  customers: Customer[]
 }
 
 interface RefinementGroup {
@@ -20,6 +22,7 @@ interface RefinementGroup {
   refinement_name: string
   product_name: string
   product_code: string
+  customer_name?: string
   date: string
   costs: { [key: string]: { description: string; value: number } }
   total: number
@@ -27,15 +30,18 @@ interface RefinementGroup {
   sale_customer?: string
 }
 
-export function CostsContent({ initialCosts, products }: CostsContentProps) {
+export function CostsContent({ initialCosts, products, customers }: CostsContentProps) {
   const [costs, setCosts] = useState(Array.isArray(initialCosts) ? initialCosts : [])
   const [showRefinementForm, setShowRefinementForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [costsToEdit, setCostsToEdit] = useState<ProductionCost[]>([])
   const [filter, setFilter] = useState("")
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
   const [filterStatus, setFilterStatus] = useState<'all' | 'liquidated' | 'pending' | null>(null)
+  const [selectedCosts, setSelectedCosts] = useState<Set<string>>(new Set())
 
   const refreshCosts = async () => {
     try {
@@ -51,6 +57,56 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     await refreshCosts()
   }
 
+  const handleSaveEdit = async () => {
+    setShowEditForm(false)
+    setSelectedCosts(new Set())
+    await refreshCosts()
+  }
+
+  const handleEditSelected = () => {
+    if (selectedCosts.size === 0) {
+      alert('Selecione pelo menos um custo para editar')
+      return
+    }
+
+    // Busca todos os custos dos refinamentos selecionados
+    const costsToEditList = costs.filter(c => {
+      const refCode = c.refinement_code || `SINGLE-${c.id}`
+      return selectedCosts.has(refCode)
+    })
+
+    setCostsToEdit(costsToEditList)
+    setShowEditForm(true)
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedCosts.size === 0) {
+      alert('Selecione pelo menos um custo para excluir')
+      return
+    }
+
+    if (!confirm(`Deseja realmente excluir ${selectedCosts.size} custo(s) selecionado(s)?`)) return
+
+    try {
+      // Busca todos os custos dos refinamentos selecionados e exclui
+      const costsToDelete = costs.filter(c => {
+        const refCode = c.refinement_code || `SINGLE-${c.id}`
+        return selectedCosts.has(refCode)
+      })
+
+      for (const cost of costsToDelete) {
+        await costsApi.delete(cost.id)
+      }
+
+      alert('Custos excluídos com sucesso!')
+      setSelectedCosts(new Set())
+      await refreshCosts()
+    } catch (error) {
+      console.error('Erro ao excluir custos:', error)
+      alert('Erro ao excluir custos')
+    }
+  }
+
   // Agrupa custos por refinement_code
   const refinementGroups = useMemo(() => {
     const groups: { [key: string]: RefinementGroup } = {}
@@ -64,6 +120,7 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
           refinement_name: cost.refinement_name || "Custo Individual",
           product_name: cost.product_name || "-",
           product_code: cost.product?.code || "-",
+          customer_name: cost.customer_name || undefined,
           date: cost.date,
           costs: {},
           total: 0,
@@ -87,14 +144,16 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
     // Se nenhum filtro de status foi selecionado, não mostra nada
     if (filterStatus === null) return false
 
-    // Filtro de texto
-    const matchesText =
-      g.product_name?.toLowerCase().includes(filter.toLowerCase()) ||
-      g.refinement_name?.toLowerCase().includes(filter.toLowerCase())
-    
-    if (!matchesText) return false
+    // Filtro de texto (sempre aplica se houver filtro)
+    if (filter) {
+      const matchesText =
+        g.product_name?.toLowerCase().includes(filter.toLowerCase()) ||
+        g.refinement_name?.toLowerCase().includes(filter.toLowerCase())
+      
+      if (!matchesText) return false
+    }
 
-    // Filtro de mês
+    // Filtro de mês (sempre aplica)
     const costDate = new Date(g.date)
     const costMonth = `${costDate.getFullYear()}-${String(costDate.getMonth() + 1).padStart(2, "0")}`
     const matchesMonth = costMonth === selectedMonth
@@ -103,8 +162,10 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
 
     // Filtro de status
     if (filterStatus === 'liquidated') {
+      // Liquidado = tem venda associada (locked_by_sale)
       return g.sale_number !== undefined
     } else if (filterStatus === 'pending') {
+      // Pendente = NÃO tem venda associada
       return g.sale_number === undefined
     }
     // filterStatus === 'all' mostra todos
@@ -161,11 +222,43 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
               active: filterStatus === 'liquidated'
             },
             { label: "Atualizar", icon: "🔄", onClick: refreshCosts },
+            { 
+              label: "Editar Selecionados", 
+              icon: "✏️", 
+              onClick: handleEditSelected,
+              disabled: selectedCosts.size === 0
+            },
+            { 
+              label: "Excluir Selecionados", 
+              icon: "🗑️", 
+              onClick: handleDeleteSelected,
+              disabled: selectedCosts.size === 0
+            },
           ]}
         />
 
         {groupedByColumns.map((columnGroup, groupIndex) => {
             const columns = [
+              {
+                key: "select",
+                header: "",
+                width: "40px",
+                render: (item: RefinementGroup) => (
+                  <input
+                    type="checkbox"
+                    checked={selectedCosts.has(item.refinement_code)}
+                    onChange={(e) => {
+                      const newSelected = new Set(selectedCosts)
+                      if (e.target.checked) {
+                        newSelected.add(item.refinement_code)
+                      } else {
+                        newSelected.delete(item.refinement_code)
+                      }
+                      setSelectedCosts(newSelected)
+                    }}
+                  />
+                ),
+              },
               {
                 key: "sale_code",
                 header: "Código",
@@ -177,6 +270,12 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
                 header: "Data",
                 width: "100px",
                 render: (item: RefinementGroup) => new Date(item.date).toLocaleDateString("pt-BR"),
+              },
+              {
+                key: "cliente",
+                header: "Cliente",
+                width: "150px",
+                render: (item: RefinementGroup) => item.customer_name || "-",
               },
               {
                 key: "product",
@@ -204,12 +303,15 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
             // Determina o título do grupo baseado nas vendas
             const firstGroup = columnGroup.groups[0]
             let groupTitle = ""
+            // Pendente = não tem venda associada (locked_by_sale)
+            const isPending = !firstGroup.sale_number
             
             if (firstGroup.sale_customer) {
               groupTitle = `Cliente: ${firstGroup.sale_customer}`
             } else {
               groupTitle = "Venda Pendente"
             }
+
 
             return (
               <div key={groupIndex} className="mb-4">
@@ -226,8 +328,19 @@ export function CostsContent({ initialCosts, products }: CostsContentProps) {
       {showRefinementForm && (
         <RefinementForm
           products={products}
+          customers={customers}
           onSave={handleSaveRefinement}
           onCancel={() => setShowRefinementForm(false)}
+        />
+      )}
+
+      {showEditForm && (
+        <EditCostsForm
+          costs={costsToEdit}
+          customers={customers}
+          products={products}
+          onSave={handleSaveEdit}
+          onCancel={() => setShowEditForm(false)}
         />
       )}
     </div>

@@ -18,6 +18,17 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | undefined>()
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
+
+  const toggleStatus = (status: string) => {
+    const newStatuses = new Set(selectedStatuses)
+    if (newStatuses.has(status)) {
+      newStatuses.delete(status)
+    } else {
+      newStatuses.add(status)
+    }
+    setSelectedStatuses(newStatuses)
+  }
 
   // Filtra vendas do mês selecionado e expande os itens
   const monthlyData = useMemo(() => {
@@ -25,13 +36,20 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     
     const filteredSales = sales.filter(sale => {
       const saleDate = new Date(sale.sale_date)
-      return saleDate.getFullYear() === parseInt(year) && 
-             saleDate.getMonth() + 1 === parseInt(month)
+      const matchesMonth = saleDate.getFullYear() === parseInt(year) && 
+                          saleDate.getMonth() + 1 === parseInt(month)
+      
+      // Se nenhum status selecionado, mostra todos
+      const matchesStatus = selectedStatuses.size === 0 || selectedStatuses.has(sale.status)
+      
+      return matchesMonth && matchesStatus
     })
 
-    // Ordena vendas por sale_number (crescente)
+    // Ordena vendas por data (mais recentes primeiro)
     const sortedSales = [...filteredSales].sort((a, b) => {
-      return a.sale_number.localeCompare(b.sale_number)
+      const dateA = new Date(a.sale_date)
+      const dateB = new Date(b.sale_date)
+      return dateB.getTime() - dateA.getTime()
     })
 
     // Expande cada venda em linhas por item
@@ -68,7 +86,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     })
 
     return { rows, saleMap }
-  }, [sales, selectedMonth])
+  }, [sales, selectedMonth, selectedStatuses])
 
   // Calcula totais
   const totals = useMemo(() => {
@@ -97,19 +115,54 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     }
   }, [monthlyData])
 
+  const statusOptions = [
+    { value: 'disputa', label: 'Disputa' },
+    { value: 'aguardando_julgamento', label: 'Aguardando Julgamento' },
+    { value: 'homologado', label: 'Homologado' },
+    { value: 'em_producao', label: 'Em Produção' },
+    { value: 'em_transito', label: 'Em Trânsito' },
+    { value: 'aguardando_pagamento', label: 'Aguardando Pagamento' },
+    { value: 'liquidado', label: 'Liquidado' },
+  ]
+
   return (
     <ErpWindow title={`Resumo Mensal - ${selectedMonth}`}>
-      <div className="flex gap-2 mb-2 items-center">
-        <label className="text-[11px]">Mês/Ano:</label>
-        <input
-          type="month"
-          className="erp-input w-40"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-        />
-        <span className="text-[11px] ml-4">
-          Total de itens: {monthlyData.rows.length}
-        </span>
+      <div className="space-y-2 mb-2">
+        <div className="flex gap-2 items-center">
+          <label className="text-[11px]">Mês/Ano:</label>
+          <input
+            type="month"
+            className="erp-input w-40"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          />
+          <span className="text-[11px] ml-4">
+            Total de itens: {monthlyData.rows.length}
+          </span>
+        </div>
+        
+        <div className="flex gap-2 items-center flex-wrap">
+          <label className="text-[11px]">Filtrar por Status:</label>
+          {statusOptions.map(status => (
+            <button
+              key={status.value}
+              className={`erp-button !min-w-0 !px-2 !py-1 !text-[10px] ${
+                selectedStatuses.has(status.value) ? '!bg-blue-200' : ''
+              }`}
+              onClick={() => toggleStatus(status.value)}
+            >
+              {selectedStatuses.has(status.value) ? '✓ ' : ''}{status.label}
+            </button>
+          ))}
+          {selectedStatuses.size > 0 && (
+            <button
+              className="erp-button !min-w-0 !px-2 !py-1 !text-[10px]"
+              onClick={() => setSelectedStatuses(new Set())}
+            >
+              ✕ Limpar Filtros
+            </button>
+          )}
+        </div>
       </div>
 
       <DataGrid
@@ -184,8 +237,10 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             render: (item) => {
               const statusMap: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
                 disputa: { label: "Disputa", color: "red" },
+                aguardando_julgamento: { label: "Aguard.Julg.", color: "red" },
                 homologado: { label: "Homologado", color: "yellow" },
-                producao: { label: "Produção", color: "cyan" },
+                em_producao: { label: "Em Produção", color: "cyan" },
+                em_transito: { label: "Em Trânsito", color: "cyan" },
                 aguardando_pagamento: { label: "Aguard.Pag.", color: "orange" },
                 liquidado: { label: "Liquidado", color: "green" },
               }
