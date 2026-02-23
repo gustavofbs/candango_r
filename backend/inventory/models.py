@@ -358,7 +358,7 @@ class Sale(models.Model):
         verbose_name='Percentual de Imposto (%)',
         help_text='Percentual de imposto aplicado sobre o valor total'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='disputa', verbose_name='Status')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='disputa', verbose_name='Status')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
 

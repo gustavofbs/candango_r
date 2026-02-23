@@ -6,6 +6,18 @@ import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { ProductionCost, Customer, Product } from "@/lib/types"
 import { costsApi } from "@/lib/api"
 
+const DEFAULT_COST_TYPES = [
+  { value: "aviamentos", label: "Aviamentos" },
+  { value: "corte_tecido", label: "Corte do tecido" },
+  { value: "costura", label: "Costura" },
+  { value: "dtf", label: "DTF" },
+  { value: "embalagem", label: "Embalagem" },
+  { value: "etiqueta", label: "Etiqueta" },
+  { value: "silk", label: "Silk" },
+  { value: "sublimacao", label: "Sublimação" },
+  { value: "tipo_tecido", label: "Tipo de tecido" },
+]
+
 interface EditCostsFormProps {
   costs: ProductionCost[]
   customers: Customer[]
@@ -15,11 +27,14 @@ interface EditCostsFormProps {
 }
 
 export function EditCostsForm({ costs, customers, products, onSave, onCancel }: EditCostsFormProps) {
+  // Pega o refinement_code, customer_id e product_id dos custos selecionados
+  const refinementCode = costs.length > 0 ? costs[0].refinement_code : null
+  const customerId = costs.length > 0 ? costs[0].customer : null
+  const productId = costs.length > 0 ? costs[0].product : null
+
   const [editedCosts, setEditedCosts] = useState(
     costs.map(cost => ({
       id: cost.id,
-      customer_id: cost.customer?.toString() || "",
-      product_id: cost.product.toString(),
       date: cost.date,
       value: cost.value.toString(),
       cost_type: cost.cost_type,
@@ -27,12 +42,51 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
     }))
   )
 
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newCost, setNewCost] = useState({
+    date: new Date().toISOString().split("T")[0],
+    cost_type: "tipo_tecido",
+    value: 0,
+  })
+  const [costTypes] = useState(DEFAULT_COST_TYPES)
+
+  const handleAddCost = async () => {
+    if (newCost.value <= 0) {
+      alert("O valor deve ser maior que zero")
+      return
+    }
+
+    try {
+      await costsApi.create({
+        customer: customerId,
+        product: productId || undefined,
+        date: newCost.date,
+        value: Number(newCost.value),
+        cost_type: newCost.cost_type,
+        description: "",
+        refinement_code: refinementCode,
+      })
+      alert('Custo adicionado com sucesso!')
+      setShowAddForm(false)
+      setNewCost({
+        date: new Date().toISOString().split("T")[0],
+        cost_type: "tipo_tecido",
+        value: 0,
+      })
+    } catch (error) {
+      console.error('Erro ao adicionar custo:', error)
+      alert('Erro ao adicionar custo')
+    }
+  }
+
   const handleSave = async () => {
     try {
-      for (const cost of editedCosts) {
+      for (let i = 0; i < editedCosts.length; i++) {
+        const cost = editedCosts[i]
+        const originalCost = costs[i]
         await costsApi.update(cost.id, {
-          customer: cost.customer_id ? Number(cost.customer_id) : null,
-          product: Number(cost.product_id),
+          customer: originalCost.customer,
+          product: originalCost.product,
           date: cost.date,
           value: Number(cost.value),
           cost_type: cost.cost_type,
@@ -55,41 +109,71 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
 
   return (
     <ErpWindow title={`Editar ${costs.length} Custo(s)`}>
-      <div className="space-y-4 max-h-[600px] overflow-y-auto">
+      <div className="mb-4">
+        <button 
+          className="erp-button"
+          onClick={() => setShowAddForm(!showAddForm)}
+        >
+          {showAddForm ? '✕ Cancelar Adição' : '➕ Adicionar Novo Custo'}
+        </button>
+      </div>
+
+      {showAddForm && (
+        <FieldGroup label="Adicionar Novo Custo">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Data:" inline>
+              <input
+                type="date"
+                className="erp-input"
+                value={newCost.date}
+                onChange={(e) => setNewCost({ ...newCost, date: e.target.value })}
+              />
+            </FormField>
+
+            <FormField label="Tipo de Custo:" inline>
+              <select
+                className="erp-select w-full"
+                value={newCost.cost_type}
+                onChange={(e) => setNewCost({ ...newCost, cost_type: e.target.value })}
+              >
+                {costTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Valor:" inline>
+              <input
+                type="text"
+                className="erp-input w-32"
+                value={newCost.value === 0 ? '' : `R$ ${Number(newCost.value).toFixed(2).replace('.', ',')}`}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/\D/g, '')
+                  const valueInReais = numericValue ? Number(numericValue) / 100 : 0
+                  setNewCost({ ...newCost, value: valueInReais })
+                }}
+                placeholder="R$ 0,00"
+              />
+            </FormField>
+
+          </div>
+
+          <div className="mt-2">
+            <button className="erp-button" onClick={handleAddCost}>
+              ✓ Adicionar Custo
+            </button>
+          </div>
+        </FieldGroup>
+      )}
+
+      <div className="space-y-4 max-h-[600px] overflow-y-auto mt-4">
         {editedCosts.map((cost, index) => {
           const originalCost = costs[index]
           return (
             <FieldGroup key={cost.id} label={`Custo ${index + 1} - ${originalCost.cost_type_display || originalCost.cost_type}`}>
               <div className="grid grid-cols-2 gap-4">
-                <FormField label="Cliente:" inline>
-                  <select
-                    className="erp-select w-full"
-                    value={cost.customer_id}
-                    onChange={(e) => updateCost(index, 'customer_id', e.target.value)}
-                  >
-                    <option value="">Nenhum</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-
-                <FormField label="Produto:" inline>
-                  <select
-                    className="erp-select w-full"
-                    value={cost.product_id}
-                    onChange={(e) => updateCost(index, 'product_id', e.target.value)}
-                  >
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} - {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-
                 <FormField label="Data:" inline>
                   <input
                     type="date"
@@ -118,11 +202,14 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
       </div>
 
       <div className="flex gap-2 mt-4">
-        <button className="erp-button" onClick={handleSave}>
-          Salvar
+        <button className="erp-button" onClick={async () => {
+          await handleSave()
+          onSave()
+        }}>
+          � Salvar Edições
         </button>
         <button className="erp-button" onClick={onCancel}>
-          Cancelar
+          ✕ Fechar
         </button>
       </div>
     </ErpWindow>

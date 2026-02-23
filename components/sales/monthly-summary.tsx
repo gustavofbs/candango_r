@@ -237,11 +237,11 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             render: (item) => {
               const statusMap: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
                 disputa: { label: "Disputa", color: "red" },
-                aguardando_julgamento: { label: "Aguard.Julg.", color: "red" },
+                aguardando_julgamento: { label: "Aguard Julg", color: "red" },
                 homologado: { label: "Homologado", color: "yellow" },
                 em_producao: { label: "Em Produção", color: "cyan" },
                 em_transito: { label: "Em Trânsito", color: "cyan" },
-                aguardando_pagamento: { label: "Aguard.Pag.", color: "orange" },
+                aguardando_pagamento: { label: "Aguard Pag", color: "orange" },
                 liquidado: { label: "Liquidado", color: "green" },
               }
               const status = statusMap[item.status] || { label: item.status, color: "yellow" as const }
@@ -267,7 +267,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       />
 
       <div className="mt-2 text-[11px] erp-inset p-2">
-        <div className="font-bold mb-1">Resumo &gt;&gt;</div>
+        <div className="font-bold mb-1">Resumo {'>>'}</div>
         <div className="grid grid-cols-6 gap-2">
           <div>
             <span className="font-bold">Quan.:</span> {totals.quantity.toFixed(2)}
