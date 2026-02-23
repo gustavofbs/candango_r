@@ -6,17 +6,6 @@ import { FieldGroup, FormField } from "@/components/erp/field-group"
 import type { ProductionCost, Customer, Product } from "@/lib/types"
 import { costsApi } from "@/lib/api"
 
-const DEFAULT_COST_TYPES = [
-  { value: "aviamentos", label: "Aviamentos" },
-  { value: "corte_tecido", label: "Corte do tecido" },
-  { value: "costura", label: "Costura" },
-  { value: "dtf", label: "DTF" },
-  { value: "embalagem", label: "Embalagem" },
-  { value: "etiqueta", label: "Etiqueta" },
-  { value: "silk", label: "Silk" },
-  { value: "sublimacao", label: "Sublimação" },
-  { value: "tipo_tecido", label: "Tipo de tecido" },
-]
 
 interface EditCostsFormProps {
   costs: ProductionCost[]
@@ -45,10 +34,9 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
   const [showAddForm, setShowAddForm] = useState(false)
   const [newCost, setNewCost] = useState({
     date: new Date().toISOString().split("T")[0],
-    cost_type: "tipo_tecido",
+    cost_type: "",
     value: 0,
   })
-  const [costTypes] = useState(DEFAULT_COST_TYPES)
 
   const handleAddCost = async () => {
     if (newCost.value <= 0) {
@@ -70,7 +58,7 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
       setShowAddForm(false)
       setNewCost({
         date: new Date().toISOString().split("T")[0],
-        cost_type: "tipo_tecido",
+        cost_type: "",
         value: 0,
       })
     } catch (error) {
@@ -131,17 +119,13 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
             </FormField>
 
             <FormField label="Tipo de Custo:" inline>
-              <select
-                className="erp-select w-full"
+              <input
+                type="text"
+                className="erp-input w-full"
                 value={newCost.cost_type}
                 onChange={(e) => setNewCost({ ...newCost, cost_type: e.target.value })}
-              >
-                {costTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Digite o tipo de custo"
+              />
             </FormField>
 
             <FormField label="Valor:" inline>
