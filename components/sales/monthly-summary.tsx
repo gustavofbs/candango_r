@@ -183,7 +183,14 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             key: "sale_type",
             header: "Tipo",
             width: "80px",
-            render: (item) => item.sale_type === "venda" ? "Venda" : "Retorno",
+            render: (item) => {
+              const typeMap: Record<string, string> = {
+                venda: "Venda",
+                dispensa: "Dispensa",
+                pregao: "Pregão",
+              }
+              return typeMap[item.sale_type] || item.sale_type
+            },
           },
           { key: "customer_name", header: "Cliente", width: "150px" },
           { key: "product_name", header: "Produto", width: "150px" },

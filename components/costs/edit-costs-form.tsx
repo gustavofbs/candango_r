@@ -38,6 +38,26 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
     value: 0,
   })
 
+  const handleDeleteCost = async (costId: number, index: number) => {
+    if (!confirm('Deseja realmente excluir este custo?')) return
+
+    try {
+      await costsApi.delete(costId)
+      
+      // Remove o custo da lista local
+      const newEditedCosts = editedCosts.filter((_, i) => i !== index)
+      setEditedCosts(newEditedCosts)
+      
+      // Atualiza a lista de custos em tempo real
+      onSave()
+      
+      alert('Custo excluído com sucesso!')
+    } catch (error) {
+      console.error('Erro ao excluir custo:', error)
+      alert('Erro ao excluir custo')
+    }
+  }
+
   const handleAddCost = async () => {
     if (newCost.value <= 0) {
       alert("O valor deve ser maior que zero")
@@ -179,6 +199,15 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
                     }}
                   />
                 </FormField>
+              </div>
+              
+              <div className="mt-2">
+                <button 
+                  className="erp-button !bg-red-500 !text-white hover:!bg-red-600"
+                  onClick={() => handleDeleteCost(cost.id, index)}
+                >
+                  🗑️ Excluir este custo
+                </button>
               </div>
             </FieldGroup>
           )

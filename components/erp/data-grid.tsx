@@ -26,7 +26,7 @@ export function DataGrid<T extends Record<string, unknown>>({
   emptyMessage = "Nenhum registro encontrado",
 }: DataGridProps<T>) {
   return (
-    <div className="erp-inset overflow-auto max-h-[400px]">
+    <div className="erp-inset overflow-auto max-h-[150px]">
       <table className="erp-table">
         <thead>
           <tr>

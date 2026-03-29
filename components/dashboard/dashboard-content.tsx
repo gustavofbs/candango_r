@@ -134,28 +134,6 @@ export function DashboardContent() {
         </div>
       </ErpWindow>
 
-      <div className="grid grid-cols-1 gap-2">
-        <ErpWindow title="Produtos com Estoque Baixo">
-          <DataGrid
-            columns={[
-              { key: "code", header: "Código", width: "80px" },
-              { key: "name", header: "Produto" },
-              {
-                key: "current_stock",
-                header: "Estoque",
-                align: "right",
-                render: (item) => (
-                  <StatusBadge color={item.current_stock <= 0 ? "red" : "yellow"}>{item.current_stock}</StatusBadge>
-                ),
-              },
-              { key: "min_stock", header: "Mínimo", align: "right" },
-            ]}
-            data={lowStockProducts}
-            emptyMessage="Nenhum produto com estoque baixo"
-          />
-        </ErpWindow>
-      </div>
-
       <ErpWindow title="Últimas Vendas">
         <DataGrid
           columns={[
