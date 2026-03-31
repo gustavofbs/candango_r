@@ -16,6 +16,7 @@ interface DataGridProps<T> {
   onRowClick?: (item: T, index: number) => void
   selectedIndex?: number
   emptyMessage?: string
+  maxHeight?: string
 }
 
 export function DataGrid<T extends Record<string, unknown>>({
@@ -24,9 +25,10 @@ export function DataGrid<T extends Record<string, unknown>>({
   onRowClick,
   selectedIndex,
   emptyMessage = "Nenhum registro encontrado",
+  maxHeight = "150px",
 }: DataGridProps<T>) {
   return (
-    <div className="erp-inset overflow-auto max-h-[150px]">
+    <div className="erp-inset overflow-auto" style={{ maxHeight }}>
       <table className="erp-table">
         <thead>
           <tr>

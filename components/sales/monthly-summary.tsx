@@ -166,6 +166,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       </div>
 
       <DataGrid
+        maxHeight="400px"
         columns={[
           { key: "sale_number", header: "Venda", width: "100px" },
           {
