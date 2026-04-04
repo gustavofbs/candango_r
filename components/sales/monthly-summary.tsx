@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { StatusBadge } from "@/components/erp/status-badge"
-import type { Sale } from "@/lib/types"
+import type { Sale, Customer } from "@/lib/types"
+import { companyApi, customersApi } from "@/lib/api"
+import type { Company } from "@/lib/types"
+import { generatePDF } from "@/lib/utils/pdf-generator"
 
 interface MonthlySummaryProps {
   sales: Sale[]
@@ -13,12 +16,34 @@ interface MonthlySummaryProps {
 }
 
 export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlySummaryProps) {
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(1)
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    return date.toISOString().split('T')[0]
   })
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | undefined>()
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
+  const [company, setCompany] = useState<Company | null>(null)
+
+  useEffect(() => {
+    loadCompany()
+  }, [])
+
+  const loadCompany = async () => {
+    try {
+      const companies = await companyApi.getAll()
+      if (companies && companies.length > 0) {
+        setCompany(companies[0])
+      }
+    } catch (error) {
+      console.error("Erro ao carregar empresa:", error)
+    }
+  }
 
   const toggleStatus = (status: string) => {
     const newStatuses = new Set(selectedStatuses)
@@ -30,19 +55,145 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     setSelectedStatuses(newStatuses)
   }
 
-  // Filtra vendas do mês selecionado e expande os itens
-  const monthlyData = useMemo(() => {
-    const [year, month] = selectedMonth.split('-')
+  const toggleSelectItem = (index: number) => {
+    const newSelected = new Set(selectedItems)
+    if (newSelected.has(index)) {
+      newSelected.delete(index)
+    } else {
+      newSelected.add(index)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const handleGenerateProposal = async (monthlyData: any) => {
+    if (selectedItems.size === 0) {
+      alert("Selecione pelo menos um item para gerar a proposta")
+      return
+    }
+
+    // Verificar se todos os itens selecionados são da mesma venda
+    const selectedSaleIds = new Set<number>()
+    selectedItems.forEach((index: number) => {
+      const row = monthlyData.rows[index]
+      if (row) {
+        selectedSaleIds.add(row.sale_id)
+      }
+    })
     
+    if (selectedSaleIds.size !== 1) {
+      alert("Selecione apenas itens da mesma venda para gerar a proposta")
+      return
+    }
+
+    if (!company) {
+      alert("Dados da empresa não encontrados. Cadastre a empresa primeiro.")
+      return
+    }
+
+    // Filtrar apenas os itens selecionados
+    const selectedData = monthlyData.rows.filter((_: any, index: number) => selectedItems.has(index))
+    
+    if (selectedData.length === 0) return
+
+    // Pegar a venda do primeiro item (todos são da mesma venda)
+    const saleId = selectedData[0].sale_id
+    const sale = monthlyData.saleMap[`${saleId}-${selectedData[0].id.split('-')[1]}`]
+    
+    if (!sale) {
+      alert("Erro ao carregar dados da venda")
+      return
+    }
+
+    // Buscar dados completos do cliente
+    let customerData: Customer | null = null
+    if (sale.customer) {
+      try {
+        customerData = await customersApi.getById(sale.customer)
+      } catch (error) {
+        console.error("Erro ao carregar dados do cliente:", error)
+      }
+    }
+
+    // Calcular totais dos itens selecionados
+    const subtotal = selectedData.reduce((acc, row) => acc + Number(row.total_price), 0)
+
+    // Preparar dados para o PDF
+    const pdfData = selectedData.map(row => ({
+      "Nome": row.product_name,
+      "Quantidade": row.quantity.toString(),
+      "Unidade": "un",
+      "Valor Unitário": `R$ ${Number(row.unit_price).toFixed(2)}`,
+      "Valor Total": `R$ ${Number(row.total_price).toFixed(2)}`,
+    }))
+
+    // Adicionar linha de Total Produtos
+    pdfData.push({
+      "Nome": "",
+      "Quantidade": "",
+      "Unidade": "",
+      "Valor Unitário": "Total Produtos",
+      "Valor Total": `R$ ${subtotal.toFixed(2)}`,
+    })
+
+    // Montar endereço completo
+    const address = [company.street, company.number, company.neighborhood].filter(Boolean).join(", ")
+    const city = [company.city, company.state].filter(Boolean).join("/")
+
+    // Corrigir problema de timezone na data - usar split para evitar conversão UTC
+    const [year, month, day] = sale.sale_date.split('-')
+    const formattedDate = `${day}/${month}/${year}`
+
+    generatePDF({
+      reportType: "Pedido de Venda",
+      reportNumber: sale.sale_number,
+      reportDate: formattedDate,
+      companyInfo: {
+        name: company.nome_fantasia,
+        cnpj: company.cnpj,
+        address: address,
+        city: city,
+        phone: company.phone,
+        email: company.email,
+        contact: company.responsavel || undefined,
+      },
+      clientInfo: customerData ? {
+        name: customerData.name,
+        address: customerData.address || undefined,
+        neighborhood: customerData.neighborhood || undefined,
+        city: customerData.city || undefined,
+        state: customerData.state || undefined,
+      } : {
+        name: sale.customer_name || "Cliente não informado",
+      },
+      columns: [
+        { text: "Nome", width: "*" },
+        { text: "Quantidade", width: 80, alignment: "center" },
+        { text: "Unidade", width: 60, alignment: "center" },
+        { text: "Valor Unitário", width: 90, alignment: "right" },
+        { text: "Valor Total", width: 90, alignment: "right" },
+      ],
+      data: pdfData,
+      totals: [
+        { label: "Subtotal", value: `R$ ${subtotal.toFixed(2)}` },
+      ],
+      orientation: "portrait",
+    })
+  }
+
+  // Filtra vendas por período e expande os itens
+  const monthlyData = useMemo(() => {
     const filteredSales = sales.filter(sale => {
       const saleDate = new Date(sale.sale_date)
-      const matchesMonth = saleDate.getFullYear() === parseInt(year) && 
-                          saleDate.getMonth() + 1 === parseInt(month)
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      end.setHours(23, 59, 59, 999)
+      
+      const matchesDate = saleDate >= start && saleDate <= end
       
       // Se nenhum status selecionado, mostra todos
       const matchesStatus = selectedStatuses.size === 0 || selectedStatuses.has(sale.status)
       
-      return matchesMonth && matchesStatus
+      return matchesDate && matchesStatus
     })
 
     // Ordena vendas por data (mais recentes primeiro)
@@ -55,6 +206,14 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     // Expande cada venda em linhas por item
     const rows: any[] = []
     const saleMap: Record<string, Sale> = {}
+    const totals = {
+      quantity: 0,
+      unit_price: 0,
+      total_price: 0,
+      unit_cost: 0,
+      total_cost: 0,
+      profit: 0,
+    }
 
     sortedSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
@@ -80,40 +239,19 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
             profit: item.profit,
             status: sale.status,
           })
+          totals.quantity += Number(item.quantity)
+          totals.unit_price += Number(item.unit_price)
+          totals.total_price += Number(item.total_price)
+          totals.unit_cost += Number(item.unit_cost)
+          totals.total_cost += Number(totalCost)
+          totals.profit += Number(item.profit)
           saleMap[rowId] = sale
         })
       }
     })
 
-    return { rows, saleMap }
-  }, [sales, selectedMonth, selectedStatuses])
-
-  // Calcula totais
-  const totals = useMemo(() => {
-    const rowCount = monthlyData.rows.length
-    const sums = monthlyData.rows.reduce((acc, row) => ({
-      quantity: acc.quantity + Number(row.quantity),
-      unit_price: acc.unit_price + Number(row.unit_price),
-      total_price: acc.total_price + Number(row.total_price),
-      unit_cost: acc.unit_cost + Number(row.unit_cost),
-      total_cost: acc.total_cost + Number(row.total_cost),
-      profit: acc.profit + Number(row.profit),
-    }), {
-      quantity: 0,
-      unit_price: 0,
-      total_price: 0,
-      unit_cost: 0,
-      total_cost: 0,
-      profit: 0,
-    })
-
-    // Calcula média para unit_price e unit_cost
-    return {
-      ...sums,
-      unit_price: rowCount > 0 ? sums.unit_price / rowCount : 0,
-      unit_cost: rowCount > 0 ? sums.unit_cost / rowCount : 0,
-    }
-  }, [monthlyData])
+    return { rows, totals, saleMap }
+  }, [sales, startDate, endDate, selectedStatuses])
 
   const statusOptions = [
     { value: 'disputa', label: 'Disputa' },
@@ -125,16 +263,38 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     { value: 'liquidado', label: 'Liquidado' },
   ]
 
+  // Verifica se todos os itens selecionados são da mesma venda
+  const canGenerateProposal = useMemo(() => {
+    if (selectedItems.size === 0) return false
+    
+    const selectedSaleIds = new Set<number>()
+    selectedItems.forEach((index: number) => {
+      const row = monthlyData.rows[index]
+      if (row) {
+        selectedSaleIds.add(row.sale_id)
+      }
+    })
+    
+    return selectedSaleIds.size === 1
+  }, [selectedItems, monthlyData.rows])
+
   return (
-    <ErpWindow title={`Resumo Mensal - ${selectedMonth}`}>
+    <ErpWindow title={`Resumo Mensal`}>
       <div className="space-y-2 mb-2">
-        <div className="flex gap-2 items-center">
-          <label className="text-[11px]">Mês/Ano:</label>
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-[11px]">Data Início:</label>
           <input
-            type="month"
-            className="erp-input w-40"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            type="date"
+            className="erp-input w-32"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <label className="text-[11px] ml-2">Data Fim:</label>
+          <input
+            type="date"
+            className="erp-input w-32"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
           <span className="text-[11px] ml-4">
             Total de itens: {monthlyData.rows.length}
@@ -162,28 +322,51 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
               ✕ Limpar Filtros
             </button>
           )}
+          <button
+            className={`erp-button !min-w-0 !px-2 !py-1 !text-[10px] ml-auto ${
+              !canGenerateProposal ? '!bg-gray-300 !cursor-not-allowed' : ''
+            }`}
+            onClick={() => canGenerateProposal && handleGenerateProposal(monthlyData)}
+            disabled={!canGenerateProposal}
+          >
+            📄 Proposta de Venda
+          </button>
         </div>
       </div>
 
       <DataGrid
         maxHeight="400px"
         columns={[
-          { key: "sale_number", header: "Venda", width: "100px" },
+          {
+            key: "checkbox",
+            header: "✓",
+            width: "30px",
+            render: (item: any, index?: number) => (
+              <input
+                type="checkbox"
+                checked={selectedItems.has(index!)}
+                onChange={() => toggleSelectItem(index!)}
+              />
+            ),
+          },
+          { key: "sale_number", header: "Venda", width: "100px", align: "center" },
           {
             key: "sale_date",
             header: "Data",
             width: "100px",
+            align: "center",
             render: (item) => {
               // Evita problema de timezone ao converter string de data
               const [year, month, day] = item.sale_date.split('-')
               return `${day}/${month}/${year}`
             },
           },
-          { key: "customer_state", header: "UF", width: "50px" },
+          { key: "customer_state", header: "UF", width: "50px", align: "center" },
           {
             key: "sale_type",
             header: "Tipo",
             width: "80px",
+            align: "center",
             render: (item) => {
               const typeMap: Record<string, string> = {
                 venda: "Venda",
@@ -195,53 +378,54 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           },
           { key: "customer_name", header: "Cliente", width: "150px" },
           { key: "product_name", header: "Produto", width: "150px" },
-          { key: "nf", header: "NF", width: "100px" },
+          { key: "nf", header: "NF", width: "100px", align: "center" },
           {
             key: "quantity",
-            header: "Quantidade",
+            header: "Quant.",
             width: "80px",
-            align: "right",
-            render: (item) => Number(item.quantity).toFixed(2),
+            align: "center",
+            render: (item) => Math.round(Number(item.quantity)).toString(),
           },
           {
             key: "unit_price",
-            header: "Valor Uni.",
+            header: "Valor Unit.",
             width: "90px",
-            align: "right",
+            align: "left",
             render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
           },
           {
             key: "total_price",
             header: "Valor Total",
             width: "100px",
-            align: "right",
+            align: "left",
             render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
           },
           {
             key: "unit_cost",
             header: "Custo Unit.",
             width: "90px",
-            align: "right",
+            align: "left",
             render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
           },
           {
             key: "total_cost",
-            header: "C. Total",
+            header: "Custo Total",
             width: "100px",
-            align: "right",
+            align: "left",
             render: (item) => `R$ ${Number(item.total_cost).toFixed(2)}`,
           },
           {
             key: "profit",
             header: "Lucro",
             width: "100px",
-            align: "right",
+            align: "left",
             render: (item) => `R$ ${Number(item.profit).toFixed(2)}`,
           },
           {
             key: "status",
             header: "Status",
             width: "120px",
+            align: "center",
             render: (item) => {
               const statusMap: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
                 disputa: { label: "Disputa", color: "red" },
@@ -263,7 +447,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
         ]}
         data={monthlyData.rows}
         selectedIndex={selectedRowIndex}
-        onRowClick={(row, index) => {
+        onRowClick={(row: any, index?: number) => {
           setSelectedRowIndex(index)
           if (onSaleSelect) {
             const sale = monthlyData.saleMap[row.id]
@@ -278,22 +462,22 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
         <div className="font-bold mb-1">Resumo {'>>'}</div>
         <div className="grid grid-cols-6 gap-2">
           <div>
-            <span className="font-bold">Quan.:</span> {totals.quantity.toFixed(2)}
+            <span className="font-bold">Quan.:</span> {monthlyData.totals.quantity.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">V. Unit.:</span> R$ {totals.unit_price.toFixed(2)}
+            <span className="font-bold">V. Unit.:</span> R$ {monthlyData.totals.unit_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">V. Total:</span> R$ {totals.total_price.toFixed(2)}
+            <span className="font-bold">V. Total.:</span> R$ {monthlyData.totals.total_price.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">C. Unit.:</span> R$ {totals.unit_cost.toFixed(2)}
+            <span className="font-bold">C. Unit.:</span> R$ {monthlyData.totals.unit_cost.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">C. Total:</span> R$ {totals.total_cost.toFixed(2)}
+            <span className="font-bold">C. Total:</span> R$ {monthlyData.totals.total_cost.toFixed(2)}
           </div>
           <div>
-            <span className="font-bold">Lucro:</span> R$ {totals.profit.toFixed(2)}
+            <span className="font-bold">Lucro:</span> R$ {monthlyData.totals.profit.toFixed(2)}
           </div>
         </div>
       </div>

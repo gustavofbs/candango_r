@@ -36,9 +36,14 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
   const [showEditForm, setShowEditForm] = useState(false)
   const [costsToEdit, setCostsToEdit] = useState<ProductionCost[]>([])
   const [filter, setFilter] = useState("")
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(1)
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    return date.toISOString().split('T')[0]
   })
   const [filterStatus, setFilterStatus] = useState<'all' | 'liquidated' | 'pending' | null>(null)
   const [selectedCosts, setSelectedCosts] = useState<Set<string>>(new Set())
@@ -153,12 +158,14 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
       if (!matchesText) return false
     }
 
-    // Filtro de mês (sempre aplica)
+    // Filtro de período (sempre aplica)
     const costDate = new Date(g.date)
-    const costMonth = `${costDate.getFullYear()}-${String(costDate.getMonth() + 1).padStart(2, "0")}`
-    const matchesMonth = costMonth === selectedMonth
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999)
+    const matchesDate = costDate >= start && costDate <= end
     
-    if (!matchesMonth) return false
+    if (!matchesDate) return false
 
     // Filtro de status
     if (filterStatus === 'liquidated') {
@@ -236,6 +243,23 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
             },
           ]}
         />
+
+        <div className="flex gap-2 mb-2 items-center">
+          <label className="text-[11px]">Data Início:</label>
+          <input
+            type="date"
+            className="erp-input w-32"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <label className="text-[11px] ml-2">Data Fim:</label>
+          <input
+            type="date"
+            className="erp-input w-32"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
 
         {groupedByColumns.map((columnGroup, groupIndex) => {
             const columns = [

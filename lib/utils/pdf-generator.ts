@@ -29,7 +29,10 @@ interface PDFOptions {
   companyInfo: CompanyInfo
   clientInfo?: {
     name: string
-    contact?: string
+    address?: string
+    neighborhood?: string
+    city?: string
+    state?: string
   }
   columns: TableColumn[]
   data: any[]
@@ -105,21 +108,63 @@ export function generatePDF(options: PDFOptions) {
       margin: [0, 0, 0, 5],
     })
 
+    const clientStack: any[] = [
+      { text: clientInfo.name, fontSize: 10, bold: true },
+    ]
+
+    // Adicionar endereço completo se disponível
+    if (clientInfo.address || clientInfo.neighborhood || clientInfo.city || clientInfo.state) {
+      const addressParts: string[] = []
+      if (clientInfo.address) addressParts.push(clientInfo.address)
+      if (clientInfo.neighborhood) addressParts.push(clientInfo.neighborhood)
+      
+      const cityState: string[] = []
+      if (clientInfo.city) cityState.push(clientInfo.city)
+      if (clientInfo.state) cityState.push(clientInfo.state)
+      
+      if (addressParts.length > 0) {
+        clientStack.push({ text: addressParts.join(", "), fontSize: 9 })
+      }
+      if (cityState.length > 0) {
+        clientStack.push({ text: cityState.join("/"), fontSize: 9 })
+      }
+    }
+
     content.push({
-      stack: [
-        { text: clientInfo.name, fontSize: 10, bold: true },
-        ...(clientInfo.contact ? [{ text: clientInfo.contact, fontSize: 9 }] : []),
-      ],
+      stack: clientStack,
       margin: [0, 0, 0, 10],
     })
   }
 
-  // Título do relatório centralizado
-  const reportTitle = reportNumber ? `${reportType.toUpperCase()} Nº ${reportNumber}` : reportType.toUpperCase()
+  // Data alinhada à direita (acima da barra)
   content.push({
-    text: reportTitle,
-    style: "reportTitle",
-    alignment: "center",
+    text: `Data: ${reportDate}`,
+    fontSize: 10,
+    alignment: "right",
+    margin: [0, 0, 0, 5],
+  })
+
+  // Barra com título do relatório (PEDIDO DE VENDA Nº) usando tabela para garantir o fundo
+  const reportTitle = reportNumber ? `PEDIDO DE VENDA Nº ${reportNumber}` : reportType.toUpperCase()
+  content.push({
+    table: {
+      widths: ["*"],
+      body: [
+        [
+          {
+            text: reportTitle,
+            fontSize: 11,
+            bold: true,
+            color: "#FFFFFF",
+            fillColor: "#666666",
+            alignment: "center",
+            margin: [0, 5, 0, 5],
+            border: [false, false, false, false],
+          },
+        ],
+      ],
+    },
+    layout: "noBorders",
     margin: [0, 0, 0, 15],
   })
 
@@ -141,34 +186,28 @@ export function generatePDF(options: PDFOptions) {
     margin: [0, 0, 0, 15],
   })
 
-  // Observações e Data alinhadas à direita
-  const footerItems: any[] = []
-  
-  if (observations) {
-    footerItems.push({
-      text: "Observações",
-      fontSize: 9,
-      bold: true,
-      margin: [0, 0, 0, 2],
-    })
-    footerItems.push({
-      text: observations,
-      fontSize: 9,
-      margin: [0, 0, 0, 10],
+  // Seção de Totais (se existir)
+  if (totals && totals.length > 0) {
+    const totalsRows = totals.map(total => [
+      { text: "", border: [false, false, false, false] },
+      { text: "", border: [false, false, false, false] },
+      { text: "", border: [false, false, false, false] },
+      { text: total.label, alignment: "right", fontSize: 10, bold: total.label.includes("Total"), border: [false, false, false, false] },
+      { text: total.value, alignment: "right", fontSize: 10, bold: total.label.includes("Total"), border: [false, false, false, false] },
+    ])
+
+    content.push({
+      table: {
+        widths: columns.map((col) => col.width || "auto"),
+        body: totalsRows,
+      },
+      layout: "noBorders",
+      margin: [0, 0, 0, 15],
     })
   }
 
-  footerItems.push({
-    text: `Data: ${reportDate}`,
-    fontSize: 9,
-    margin: [0, 0, 0, 0],
-  })
-
-  content.push({
-    stack: footerItems,
-    alignment: "right",
-    margin: [0, 0, 0, 0],
-  })
+  // Rodapé com assinatura (se necessário)
+  // Removido: Observações e Formas de Pagamento
 
   // Definição do documento
   const docDefinition: any = {

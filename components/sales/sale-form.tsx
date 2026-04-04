@@ -283,7 +283,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   <option value="">Selecione...</option>
                   {safeCustomers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.code} - {c.name}
                     </option>
                   ))}
                 </select>
