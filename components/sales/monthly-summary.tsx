@@ -16,14 +16,11 @@ interface MonthlySummaryProps {
 }
 
 export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlySummaryProps) {
-  const [startDate, setStartDate] = useState(() => {
+  const [selectedMonth, setSelectedMonth] = useState(() => {
     const date = new Date()
-    date.setDate(1)
-    return date.toISOString().split('T')[0]
-  })
-  const [endDate, setEndDate] = useState(() => {
-    const date = new Date()
-    return date.toISOString().split('T')[0]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    return `${year}-${month}`
   })
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | undefined>()
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
@@ -184,11 +181,11 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
   const monthlyData = useMemo(() => {
     const filteredSales = sales.filter(sale => {
       const saleDate = new Date(sale.sale_date)
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
+      const [year, month] = selectedMonth.split('-')
+      const saleYear = saleDate.getFullYear()
+      const saleMonth = saleDate.getMonth() + 1
       
-      const matchesDate = saleDate >= start && saleDate <= end
+      const matchesDate = saleYear === parseInt(year) && saleMonth === parseInt(month)
       
       // Se nenhum status selecionado, mostra todos
       const matchesStatus = selectedStatuses.size === 0 || selectedStatuses.has(sale.status)
@@ -251,7 +248,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
     })
 
     return { rows, totals, saleMap }
-  }, [sales, startDate, endDate, selectedStatuses])
+  }, [sales, selectedMonth, selectedStatuses])
 
   const statusOptions = [
     { value: 'disputa', label: 'Disputa' },
@@ -281,20 +278,13 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
   return (
     <ErpWindow title={`Resumo Mensal`}>
       <div className="space-y-2 mb-2">
-        <div className="flex items-center gap-2 mb-2">
-          <label className="text-[11px]">Data Início:</label>
+        <div className="flex gap-2 mb-2 items-center">
+          <label className="text-[11px]">Mês:</label>
           <input
-            type="date"
-            className="erp-input w-32"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <label className="text-[11px] ml-2">Data Fim:</label>
-          <input
-            type="date"
-            className="erp-input w-32"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            type="month"
+            className="erp-input w-40"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
           />
           <span className="text-[11px] ml-4">
             Total de itens: {monthlyData.rows.length}
