@@ -16,6 +16,7 @@ interface SaleItem {
   unit_price: number
   unit_cost: number
   cost_refinement_code?: string
+  create_refinement?: boolean
   discount: number
   tax: number
   freight: number
@@ -77,7 +78,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     quantity: 1,
     unit_price: 0,
     discount: 0,
-    cost_refinement_code: "",
+    create_refinement: false,
     tax: 0,
     freight: 0,
   })
@@ -163,10 +164,9 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     const product = safeProducts.find((p) => p.id === Number(newItem.product_id))
     if (!product) return
 
-    // Busca o refinamento selecionado para pegar o custo
-    // Se não houver refinamento, usa o preço de compra do produto
-    const selectedRefinement = refinements.find((r: any) => r.refinement_code === newItem.cost_refinement_code)
-    const unitCost = selectedRefinement ? Number(selectedRefinement.total) : Number(product.purchase_price)
+    // Se criar refinamento estiver marcado, usa 0 como custo inicial
+    // Caso contrário, usa o preço de compra do produto
+    const unitCost = newItem.create_refinement ? 0 : Number(product.purchase_price)
 
     const unitPrice = Number(newItem.unit_price)
     const totalPrice = (unitPrice * newItem.quantity) - newItem.discount + Number(newItem.tax) + Number(newItem.freight)
@@ -179,7 +179,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         quantity: newItem.quantity,
         unit_price: unitPrice,
         unit_cost: unitCost,
-        cost_refinement_code: newItem.cost_refinement_code || undefined,
+        create_refinement: newItem.create_refinement,
         discount: newItem.discount,
         tax: Number(newItem.tax),
         freight: Number(newItem.freight),
@@ -187,7 +187,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
       },
     ])
 
-    setNewItem({ product_id: "", quantity: 1, unit_price: 0, discount: 0, cost_refinement_code: "", tax: 0, freight: 0 })
+    setNewItem({ product_id: "", quantity: 1, unit_price: 0, discount: 0, create_refinement: false, tax: 0, freight: 0 })
     setRefinements([])
   }
 
@@ -226,7 +226,10 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
           quantity: Number(Number(item.quantity).toFixed(2)),
           unit_price: Number(Number(item.unit_price).toFixed(2)),
           unit_cost: Number(Number(item.unit_cost).toFixed(2)),
-          cost_refinement_code: item.cost_refinement_code || null,
+          // Se create_refinement está marcado, define o código que será criado
+          cost_refinement_code: item.create_refinement 
+            ? `REF-${saleNumber}-${item.product_id}` 
+            : (item.cost_refinement_code || null),
           discount: Number(Number(item.discount).toFixed(2)),
           tax: Number(Number(item.tax).toFixed(2)),
           freight: Number(Number(item.freight).toFixed(2)),
@@ -236,10 +239,38 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
       console.log("Dados da venda:", JSON.stringify(saleData, null, 2))
 
       // Create or update sale
+      let createdSale
       if (sale) {
-        await salesApi.update(sale.id, saleData)
+        createdSale = await salesApi.update(sale.id, saleData)
       } else {
-        await salesApi.create(saleData)
+        createdSale = await salesApi.create(saleData)
+      }
+
+      // Criar custos de produção para itens com create_refinement marcado
+      const itemsWithRefinement = items.filter(item => item.create_refinement)
+      if (itemsWithRefinement.length > 0 && createdSale) {
+        const saleId = createdSale.id || sale?.id
+        const saleNumber = createdSale.sale_number || sale?.sale_number
+        
+        for (const item of itemsWithRefinement) {
+          try {
+            // Criar custo de produção inicial vinculado à venda
+            await costsApi.create({
+              product: item.product_id,
+              customer: formData.customer_id ? Number(formData.customer_id) : null,
+              description: `Refinamento automático - Venda ${saleNumber}`,
+              cost_type: 'material',
+              value: 0,
+              date: formData.sale_date,
+              notes: `Criado automaticamente pela venda ${saleNumber}`,
+              refinement_code: `REF-${saleNumber}-${item.product_id}`,
+              refinement_name: `Venda ${saleNumber}`,
+              locked_by_sale: saleId,
+            })
+          } catch (error) {
+            console.error(`Erro ao criar custo de produção para item ${item.product_name}:`, error)
+          }
+        }
       }
 
       setSaving(false)
@@ -361,23 +392,21 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
                 />
               </FormField>
-              <FormField label="Refinamento:" inline>
-                <select
-                  className="erp-select w-full"
-                  value={newItem.cost_refinement_code}
-                  onChange={(e) => setNewItem({ ...newItem, cost_refinement_code: e.target.value })}
-                  disabled={!newItem.product_id || loadingRefinements}
-                >
-                  <option value="">
-                    {loadingRefinements ? "Carregando..." : !newItem.product_id ? "Selecione um produto primeiro" : "Nenhum refinamento"}
-                  </option>
-                  {refinements.map((ref) => (
-                    <option key={ref.refinement_code} value={ref.refinement_code}>
-                      {ref.refinement_code} - {ref.refinement_name} (R$ {ref.total.toFixed(2)})
-                      {ref.is_locked && ` 🔒 Usado em ${ref.locked_by_sale_number}`}
-                    </option>
-                  ))}
-                </select>
+              <FormField label="Criar Refinamento:" inline>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4"
+                    checked={newItem.create_refinement}
+                    onChange={(e) => setNewItem({ ...newItem, create_refinement: e.target.checked })}
+                    disabled={!newItem.product_id}
+                  />
+                  <span className="text-[11px] text-gray-600">
+                    {newItem.create_refinement 
+                      ? "✓ Será criado custo de produção vinculado a esta venda" 
+                      : "Usar custo original do produto"}
+                  </span>
+                </div>
               </FormField>
               <FormField label="Frete:" inline>
                 <input

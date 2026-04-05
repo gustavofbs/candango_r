@@ -23,6 +23,7 @@ interface RefinementGroup {
   product_name: string
   product_code: string
   customer_name?: string
+  customer_code?: string
   date: string
   costs: { [key: string]: { description: string; value: number } }
   total: number
@@ -45,7 +46,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
     const date = new Date()
     return date.toISOString().split('T')[0]
   })
-  const [filterStatus, setFilterStatus] = useState<'all' | 'liquidated' | 'pending' | null>(null)
+  const [filterStatus, setFilterStatus] = useState<'all' | 'liquidated' | 'pending' | null>('pending')
   const [selectedCosts, setSelectedCosts] = useState<Set<string>>(new Set())
 
   const refreshCosts = async () => {
@@ -120,16 +121,33 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
       const refCode = cost.refinement_code || `SINGLE-${cost.id}`
       
       if (!groups[refCode]) {
+        // Extrai o número da venda do refinement_code se existir (formato: REF-[numero_venda]-[id_produto])
+        let saleNumber = cost.locked_by_sale_number
+        if (!saleNumber && cost.refinement_code && cost.refinement_code.startsWith('REF-')) {
+          const parts = cost.refinement_code.split('-')
+          if (parts.length >= 2) {
+            saleNumber = parts[1]
+          }
+        }
+        
+        // Busca o código do cliente se houver customer_id
+        let customerCode: string | undefined
+        if (cost.customer) {
+          const customer = customers.find(c => c.id === cost.customer)
+          customerCode = customer?.code
+        }
+        
         groups[refCode] = {
           refinement_code: refCode,
           refinement_name: cost.refinement_name || "Custo Individual",
           product_name: cost.product_name || "-",
           product_code: cost.product?.code || "-",
           customer_name: cost.customer_name || undefined,
+          customer_code: customerCode,
           date: cost.date,
           costs: {},
           total: 0,
-          sale_number: cost.locked_by_sale_number || undefined,
+          sale_number: saleNumber || undefined,
           sale_customer: cost.locked_by_sale_customer || undefined,
         }
       }
@@ -169,11 +187,14 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
 
     // Filtro de status
     if (filterStatus === 'liquidated') {
-      // Liquidado = tem venda associada (locked_by_sale)
-      return g.sale_number !== undefined
+      // Liquidado = venda foi liquidada (locked_by_sale existe)
+      // Verifica se o custo original tem locked_by_sale_number
+      const originalCost = costs.find(c => c.refinement_code === g.refinement_code)
+      return originalCost?.locked_by_sale_number !== undefined && originalCost?.locked_by_sale_number !== null
     } else if (filterStatus === 'pending') {
-      // Pendente = NÃO tem venda associada
-      return g.sale_number === undefined
+      // Pendente (Linha de Produção) = venda NÃO foi liquidada ainda
+      // Tem sale_number mas não tem locked_by_sale_number
+      return g.sale_number !== undefined
     }
     // filterStatus === 'all' mostra todos
     
@@ -217,18 +238,11 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
           buttons={[
             { label: "Novo Custo", icon: "➕", onClick: () => setShowRefinementForm(true) },
             { 
-              label: "Pendentes", 
+              label: "Linha de Produção", 
               icon: "⏳", 
               onClick: () => setFilterStatus('pending'),
               active: filterStatus === 'pending'
             },
-            { 
-              label: "Liquidados", 
-              icon: "✅", 
-              onClick: () => setFilterStatus('liquidated'),
-              active: filterStatus === 'liquidated'
-            },
-            { label: "Atualizar", icon: "🔄", onClick: refreshCosts },
             { 
               label: "Editar Selecionados", 
               icon: "✏️", 
@@ -285,7 +299,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
               },
               {
                 key: "sale_code",
-                header: "Código",
+                header: "Venda",
                 width: "80px",
                 render: (item: RefinementGroup) => item.sale_number || "-",
               },
@@ -298,8 +312,14 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
               {
                 key: "cliente",
                 header: "Cliente",
-                width: "150px",
-                render: (item: RefinementGroup) => item.customer_name || "-",
+                width: "200px",
+                render: (item: RefinementGroup) => {
+                  if (!item.customer_name) return "-"
+                  if (item.customer_code) {
+                    return `${item.customer_code} - ${item.customer_name}`
+                  }
+                  return item.customer_name
+                },
               },
               {
                 key: "product",
@@ -324,17 +344,8 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
               },
             ]
 
-            // Determina o título do grupo baseado nas vendas
-            const firstGroup = columnGroup.groups[0]
-            let groupTitle = ""
-            // Pendente = não tem venda associada (locked_by_sale)
-            const isPending = !firstGroup.sale_number
-            
-            if (firstGroup.sale_customer) {
-              groupTitle = `Cliente: ${firstGroup.sale_customer}`
-            } else {
-              groupTitle = "Venda Pendente"
-            }
+            // Título padrão para todos os grupos
+            const groupTitle = "Custos de Produção"
 
 
             return (

@@ -1,7 +1,8 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import Sale, ProductionCost
+from django.db.models import Sum
+from .models import Sale, ProductionCost, SaleItem
 
 
 @receiver(pre_save, sender=Sale)
@@ -67,3 +68,54 @@ def create_cost_snapshot_on_sale(sender, instance, created, **kwargs):
                 }
                 item.cost_calculated_at = timezone.now()
                 item.save(update_fields=['cost_snapshot', 'cost_calculated_at'])
+
+
+def update_sale_item_costs_for_refinement(refinement_code):
+    """
+    Atualiza o unit_cost e total_cost de todos os itens de venda que usam um refinamento específico
+    """
+    if not refinement_code:
+        return
+    
+    # Calcula o total do refinamento
+    total_refinement_cost = ProductionCost.objects.filter(
+        refinement_code=refinement_code
+    ).aggregate(total=Sum('value'))['total'] or 0
+    
+    # Busca todos os itens de venda que usam este refinamento
+    # Verifica tanto cost_refinement_code quanto locked_by_sale
+    sale_items = SaleItem.objects.filter(cost_refinement_code=refinement_code)
+    
+    # Também busca itens vinculados através do locked_by_sale
+    production_costs = ProductionCost.objects.filter(refinement_code=refinement_code).first()
+    if production_costs and production_costs.locked_by_sale:
+        sale_items_by_lock = SaleItem.objects.filter(
+            sale=production_costs.locked_by_sale,
+            product=production_costs.product
+        )
+        # Combina os querysets
+        sale_items = sale_items | sale_items_by_lock
+    
+    # Atualiza cada item
+    for item in sale_items.distinct():
+        item.unit_cost = total_refinement_cost
+        item.total_cost = total_refinement_cost * item.quantity
+        item.save(update_fields=['unit_cost', 'total_cost'])
+
+
+@receiver(post_save, sender=ProductionCost)
+def update_sale_costs_on_production_cost_change(sender, instance, created, **kwargs):
+    """
+    Atualiza os custos dos itens de venda quando um custo de produção é criado ou modificado
+    """
+    if instance.refinement_code:
+        update_sale_item_costs_for_refinement(instance.refinement_code)
+
+
+@receiver(post_delete, sender=ProductionCost)
+def update_sale_costs_on_production_cost_delete(sender, instance, **kwargs):
+    """
+    Atualiza os custos dos itens de venda quando um custo de produção é deletado
+    """
+    if instance.refinement_code:
+        update_sale_item_costs_for_refinement(instance.refinement_code)
