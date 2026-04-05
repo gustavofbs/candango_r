@@ -19,14 +19,11 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState("")
-  const [startDate, setStartDate] = useState(() => {
+  const [selectedMonth, setSelectedMonth] = useState(() => {
     const date = new Date()
-    date.setDate(1)
-    return date.toISOString().split('T')[0]
-  })
-  const [endDate, setEndDate] = useState(() => {
-    const date = new Date()
-    return date.toISOString().split('T')[0]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    return `${year}-${month}`
   })
 
   const refreshExpenses = async () => {
@@ -74,12 +71,13 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
   const monthlyExpenses = useMemo(() => {
     return expenses.filter((expense: Expense) => {
       const expenseDate = new Date(expense.date)
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      end.setHours(23, 59, 59, 999)
-      return expenseDate >= start && expenseDate <= end
+      const [year, month] = selectedMonth.split('-')
+      const expenseYear = expenseDate.getFullYear()
+      const expenseMonth = expenseDate.getMonth() + 1
+      
+      return expenseYear === parseInt(year) && expenseMonth === parseInt(month)
     })
-  }, [expenses, startDate, endDate])
+  }, [expenses, selectedMonth])
 
   const filteredExpenses = monthlyExpenses.filter(
     (e) =>
@@ -102,19 +100,12 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
         />
 
         <div className="flex gap-2 mb-2 items-center">
-          <label className="text-[11px]">Data Início:</label>
+          <label className="text-[11px]">Mês:</label>
           <input
-            type="date"
-            className="erp-input w-32"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <label className="text-[11px] ml-2">Data Fim:</label>
-          <input
-            type="date"
-            className="erp-input w-32"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            type="month"
+            className="erp-input w-40"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
           />
           <label className="text-[11px] ml-4">Filtrar:</label>
           <input

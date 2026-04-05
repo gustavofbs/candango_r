@@ -99,10 +99,9 @@ def update_sale_item_costs_for_refinement(refinement_code):
     # Atualiza cada item
     for item in sale_items.distinct():
         item.unit_cost = total_refinement_cost
-        item.total_cost = total_refinement_cost * item.quantity
-        # Recalcula o lucro: (preço total - custo total - imposto - frete)
-        item.profit = item.total_price - item.total_cost - item.tax - item.freight
-        item.save(update_fields=['unit_cost', 'total_cost', 'profit'])
+        # Chama save() sem update_fields para que o método save() do modelo
+        # recalcule automaticamente total_cost, profit e outros campos
+        item.save()
 
 
 @receiver(post_save, sender=ProductionCost)

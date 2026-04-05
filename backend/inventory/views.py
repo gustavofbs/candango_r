@@ -239,6 +239,27 @@ class SaleViewSet(viewsets.ModelViewSet):
         next_sale_number = str(next_num).zfill(5)
         
         return Response({'next_number': next_sale_number})
+    
+    @action(detail=False, methods=['post'])
+    def recalculate_profits(self, request):
+        """Recalcula o lucro de todos os itens de venda"""
+        items = SaleItem.objects.all()
+        total_items = items.count()
+        
+        updated = 0
+        for item in items:
+            old_profit = item.profit
+            # Força o recálculo chamando save()
+            item.save()
+            
+            if old_profit != item.profit:
+                updated += 1
+        
+        return Response({
+            'message': f'Lucros recalculados com sucesso!',
+            'total_items': total_items,
+            'updated_items': updated
+        })
 
 
 class StockMovementViewSet(viewsets.ModelViewSet):
