@@ -173,6 +173,7 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
                     'product_id': cost.product.id,
                     'product_name': cost.product.name,
                     'product_code': cost.product.code,
+                    'quantity': float(cost.quantity) if cost.quantity else None,
                     'is_locked': cost.is_locked,
                     'locked_by_sale_number': cost.locked_by_sale.sale_number if cost.locked_by_sale else None,
                     'locked_at': cost.locked_at,

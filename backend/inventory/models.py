@@ -221,6 +221,15 @@ class ProductionCost(models.Model):
     )
     date = models.DateField(verbose_name='Data')
     notes = models.TextField(blank=True, null=True, verbose_name='Observações')
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Quantidade',
+        help_text='Quantidade da venda vinculada a este custo'
+    )
     
     # Campos de refinamento
     refinement_code = models.CharField(

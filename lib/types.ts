@@ -86,6 +86,7 @@ export interface ProductionCost {
   value: number
   date: string
   notes: string | null
+  quantity?: number | null
   refinement_code?: string | null
   refinement_name?: string | null
   is_locked: boolean

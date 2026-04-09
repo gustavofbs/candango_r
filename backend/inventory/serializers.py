@@ -63,7 +63,7 @@ class ProductionCostSerializer(serializers.ModelSerializer):
         model = ProductionCost
         fields = [
             'id', 'product', 'product_name', 'product_code', 'customer', 'customer_name', 'description', 
-            'cost_type', 'value', 'date', 'notes',
+            'cost_type', 'value', 'date', 'notes', 'quantity',
             'refinement_code', 'refinement_name', 'is_locked', 
             'locked_by_sale', 'locked_by_sale_number', 'locked_by_sale_customer', 'locked_at', 'created_at'
         ]

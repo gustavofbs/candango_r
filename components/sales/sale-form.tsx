@@ -252,23 +252,34 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         const saleId = createdSale.id || sale?.id
         const saleNumber = createdSale.sale_number || sale?.sale_number
         
+        // Tipos de custo padrão que serão criados automaticamente
+        const defaultCostTypes = [
+          { cost_type: 'Camisa Lisa', description: 'Custo da camisa base' },
+          { cost_type: 'DTF/Silk/Sublimação', description: 'Custo de impressão' },
+          { cost_type: 'Frete/Uber', description: 'Custo de transporte' },
+          { cost_type: 'Imposto', description: 'Impostos e taxas' },
+        ]
+        
         for (const item of itemsWithRefinement) {
           try {
-            // Criar custo de produção inicial vinculado à venda
-            await costsApi.create({
-              product: item.product_id,
-              customer: formData.customer_id ? Number(formData.customer_id) : null,
-              description: `Refinamento automático - Venda ${saleNumber}`,
-              cost_type: 'material',
-              value: 0,
-              date: formData.sale_date,
-              notes: `Criado automaticamente pela venda ${saleNumber}`,
-              refinement_code: `REF-${saleNumber}-${item.product_id}`,
-              refinement_name: `Venda ${saleNumber}`,
-              locked_by_sale: saleId,
-            })
+            // Criar 4 custos de produção padrão para cada item
+            for (const costType of defaultCostTypes) {
+              await costsApi.create({
+                product: item.product_id,
+                customer: formData.customer_id ? Number(formData.customer_id) : null,
+                description: costType.description,
+                cost_type: costType.cost_type,
+                value: 0,
+                date: formData.sale_date,
+                notes: `Criado automaticamente pela venda ${saleNumber}`,
+                refinement_code: `REF-${saleNumber}-${item.product_id}`,
+                refinement_name: `Venda ${saleNumber}`,
+                locked_by_sale: saleId,
+                quantity: item.quantity,
+              })
+            }
           } catch (error) {
-            console.error(`Erro ao criar custo de produção para item ${item.product_name}:`, error)
+            console.error(`Erro ao criar custos de produção para item ${item.product_name}:`, error)
           }
         }
       }

@@ -29,6 +29,7 @@ interface RefinementGroup {
   total: number
   sale_number?: string
   sale_customer?: string
+  quantity?: number
 }
 
 export function CostsContent({ initialCosts, products, customers }: CostsContentProps) {
@@ -44,6 +45,8 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
   })
   const [endDate, setEndDate] = useState(() => {
     const date = new Date()
+    // Adiciona 1 dia para garantir que hoje seja incluído
+    date.setDate(date.getDate() + 1)
     return date.toISOString().split('T')[0]
   })
   const [filterStatus, setFilterStatus] = useState<'all' | 'liquidated' | 'pending' | null>('pending')
@@ -141,7 +144,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
           refinement_code: refCode,
           refinement_name: cost.refinement_name || "Custo Individual",
           product_name: cost.product_name || "-",
-          product_code: cost.product?.code || "-",
+          product_code: cost.product_code || "-",
           customer_name: cost.customer_name || undefined,
           customer_code: customerCode,
           date: cost.date,
@@ -149,6 +152,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
           total: 0,
           sale_number: saleNumber || undefined,
           sale_customer: cost.locked_by_sale_customer || undefined,
+          quantity: cost.quantity || undefined,
         }
       }
 
@@ -299,7 +303,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
               },
               {
                 key: "sale_code",
-                header: "Venda",
+                header: "Código",
                 width: "80px",
                 render: (item: RefinementGroup) => item.sale_number || "-",
               },
@@ -326,6 +330,13 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
                 header: "Produto",
                 width: "150px",
                 render: (item: RefinementGroup) => `${item.product_code} - ${item.product_name}`,
+              },
+              {
+                key: "quantity",
+                header: "Quantidade",
+                width: "80px",
+                align: "center" as const,
+                render: (item: RefinementGroup) => item.quantity ? Math.round(Number(item.quantity)).toString() : "-",
               },
               ...columnGroup.costTypes.map((costType) => ({
                 key: costType,

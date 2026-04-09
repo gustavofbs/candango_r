@@ -210,6 +210,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
       unit_cost: 0,
       total_cost: 0,
       profit: 0,
+      item_count: 0,
     }
 
     sortedSales.forEach(sale => {
@@ -242,11 +243,18 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           totals.unit_cost += Number(item.unit_cost)
           totals.total_cost += Number(totalCost)
           totals.profit += Number(item.profit)
+          totals.item_count += 1
           saleMap[rowId] = sale
         })
       }
     })
 
+    // Calcula médias para unit_price e unit_cost
+    if (totals.item_count > 0) {
+      totals.unit_price = totals.unit_price / totals.item_count
+      totals.unit_cost = totals.unit_cost / totals.item_count
+    }
+    
     return { rows, totals, saleMap }
   }, [sales, selectedMonth, selectedStatuses])
 
