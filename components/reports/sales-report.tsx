@@ -2,9 +2,30 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { DataGrid } from "@/components/erp/data-grid"
+import { StatusBadge } from "@/components/erp/status-badge"
 import { salesApi, companyApi } from "@/lib/api"
 import type { Sale, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+
+const statusOptions = [
+  { value: 'disputa', label: 'Disputa' },
+  { value: 'aguardando_julgamento', label: 'Ag. Julgamento' },
+  { value: 'homologado', label: 'Homologado' },
+  { value: 'em_producao', label: 'Em Produção' },
+  { value: 'em_transito', label: 'Em Trânsito' },
+  { value: 'aguardando_pagamento', label: 'Ag. Pagamento' },
+  { value: 'liquidado', label: 'Liquidado' },
+]
+
+const statusLabels: Record<string, string> = {
+  disputa: 'Disputa',
+  aguardando_julgamento: 'Ag. Julgamento',
+  homologado: 'Homologado',
+  em_producao: 'Em Produção',
+  em_transito: 'Em Trânsito',
+  aguardando_pagamento: 'Ag. Pagamento',
+  liquidado: 'Liquidado',
+}
 
 export function SalesReport() {
   const [sales, setSales] = useState<(Sale & { customer: { name: string } | null })[]>([])
@@ -17,9 +38,11 @@ export function SalesReport() {
   })
   const [endDate, setEndDate] = useState(() => {
     const date = new Date()
+    date.setDate(date.getDate() + 1)
     return date.toISOString().split('T')[0]
   })
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set())
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadData()
@@ -52,22 +75,33 @@ export function SalesReport() {
     }
   }
 
+  const toggleStatus = (status: string) => {
+    const newStatuses = new Set(selectedStatuses)
+    if (newStatuses.has(status)) {
+      newStatuses.delete(status)
+    } else {
+      newStatuses.add(status)
+    }
+    setSelectedStatuses(newStatuses)
+  }
+
   const filteredSales = useMemo(() => {
     return sales.filter(sale => {
       const saleDate = new Date(sale.sale_date)
       const start = new Date(startDate)
       const end = new Date(endDate)
       end.setHours(23, 59, 59, 999)
-      return saleDate >= start && saleDate <= end
+      const matchesDate = saleDate >= start && saleDate <= end
+      const matchesStatus = selectedStatuses.size === 0 || selectedStatuses.has(sale.status)
+      return matchesDate && matchesStatus
     })
-  }, [sales, startDate, endDate])
+  }, [sales, startDate, endDate, selectedStatuses])
 
   const expandedData = useMemo(() => {
     const rows: any[] = []
     filteredSales.forEach(sale => {
       if (sale.items && sale.items.length > 0) {
         sale.items.forEach(item => {
-          const calculatedTax = (Number(item.total_price) * Number(sale.tax_percentage || 0)) / 100
           rows.push({
             id: `${sale.id}-${item.id}`,
             sale_id: sale.id,
@@ -78,38 +112,17 @@ export function SalesReport() {
             product_name: item.product_name || "",
             quantity: item.quantity,
             unit_price: item.unit_price,
-            total_price: item.total_price,
             unit_cost: item.unit_cost,
+            total_price: item.total_price,
             total_cost: Number(item.unit_cost) * Number(item.quantity),
-            tax: calculatedTax,
-            freight: item.freight,
             profit: item.profit,
+            status: sale.status,
           })
         })
       }
     })
     return rows
   }, [filteredSales])
-
-  const totals = useMemo(() => {
-    const rowCount = expandedData.length
-    const sums = expandedData.reduce((acc, row) => ({
-      quantity: acc.quantity + Number(row.quantity),
-      total_price: acc.total_price + Number(row.total_price),
-      total_cost: acc.total_cost + Number(row.total_cost),
-      tax: acc.tax + Number(row.tax),
-      freight: acc.freight + Number(row.freight),
-      profit: acc.profit + Number(row.profit),
-    }), {
-      quantity: 0,
-      total_price: 0,
-      total_cost: 0,
-      tax: 0,
-      freight: 0,
-      profit: 0,
-    })
-    return sums
-  }, [expandedData])
 
   const toggleSelectAll = () => {
     if (selectedItems.size === expandedData.length) {
@@ -140,43 +153,48 @@ export function SalesReport() {
       return
     }
 
-    // Filtrar apenas os itens selecionados
     const selectedData = expandedData.filter((_, index) => selectedItems.has(index))
 
-    // Calcular totais dos itens selecionados
-    const selectedTotals = selectedData.reduce((acc, row) => ({
-      quantity: acc.quantity + Number(row.quantity),
+    const n = selectedData.length || 1
+    const pdfTotals = selectedData.reduce((acc, row) => ({
+      qty: acc.qty + Number(row.quantity),
+      unit_price: acc.unit_price + Number(row.unit_price),
       total_price: acc.total_price + Number(row.total_price),
+      unit_cost: acc.unit_cost + Number(row.unit_cost),
       total_cost: acc.total_cost + Number(row.total_cost),
-      tax: acc.tax + Number(row.tax),
-      freight: acc.freight + Number(row.freight),
       profit: acc.profit + Number(row.profit),
-    }), {
-      quantity: 0,
-      total_price: 0,
-      total_cost: 0,
-      tax: 0,
-      freight: 0,
-      profit: 0,
-    })
+    }), { qty: 0, unit_price: 0, total_price: 0, unit_cost: 0, total_cost: 0, profit: 0 })
 
-    // Preparar dados para o PDF
+    const pdfFooterRow: Record<string, string> = {
+      "Venda": "TOTAIS",
+      "Data": "",
+      "UF": "",
+      "Cliente": "",
+      "Produto": "",
+      "Qtd": pdfTotals.qty.toFixed(0),
+      "Valor Uni.": `R$ ${(pdfTotals.unit_price / n).toFixed(2)}`,
+      "Valor Total": `R$ ${pdfTotals.total_price.toFixed(2)}`,
+      "Custo Uni.": `R$ ${(pdfTotals.unit_cost / n).toFixed(2)}`,
+      "C. Total": `R$ ${pdfTotals.total_cost.toFixed(2)}`,
+      "Lucro": `R$ ${pdfTotals.profit.toFixed(2)}`,
+      "Status": "",
+    }
+
     const pdfData = selectedData.map(row => ({
       "Venda": row.sale_number,
-      "Data": new Date(row.sale_date).toLocaleDateString('pt-BR'),
+      "Data": (() => { const [y, m, d] = row.sale_date.split('-'); return `${d}/${m}/${y}` })(),
       "UF": row.customer_state,
       "Cliente": row.customer_name,
       "Produto": row.product_name,
-      "Quantidade": row.quantity.toString(),
-      "Valor Unitário": `R$ ${Number(row.unit_price).toFixed(2)}`,
+      "Qtd": row.quantity.toString(),
+      "Valor Uni.": `R$ ${Number(row.unit_price).toFixed(2)}`,
       "Valor Total": `R$ ${Number(row.total_price).toFixed(2)}`,
-      "Custo Total": `R$ ${Number(row.total_cost).toFixed(2)}`,
-      "Imposto": `R$ ${Number(row.tax).toFixed(2)}`,
-      "Frete": `R$ ${Number(row.freight).toFixed(2)}`,
+      "Custo Uni.": `R$ ${Number(row.unit_cost).toFixed(2)}`,
+      "C. Total": `R$ ${Number(row.total_cost).toFixed(2)}`,
       "Lucro": `R$ ${Number(row.profit).toFixed(2)}`,
+      "Status": statusLabels[row.status] || row.status,
     }))
 
-    // Montar endereço completo
     const address = [company.street, company.number, company.neighborhood].filter(Boolean).join(", ")
     const city = [company.city, company.state].filter(Boolean).join("/")
 
@@ -193,20 +211,21 @@ export function SalesReport() {
         contact: company.responsavel || undefined,
       },
       columns: [
-        { text: "Venda", width: 50 },
-        { text: "Data", width: 55 },
-        { text: "UF", width: 30 },
-        { text: "Cliente", width: 70 },
+        { text: "Venda", width: 45 },
+        { text: "Data", width: 50 },
+        { text: "UF", width: 25 },
+        { text: "Cliente", width: 75 },
         { text: "Produto", width: 80 },
-        { text: "Quantidade", width: 50, alignment: "right" },
-        { text: "Valor Unitário", width: 55, alignment: "right" },
+        { text: "Qtd", width: 35, alignment: "right" },
+        { text: "Valor Uni.", width: 55, alignment: "right" },
         { text: "Valor Total", width: 55, alignment: "right" },
-        { text: "Custo Total", width: 55, alignment: "right" },
-        { text: "Imposto", width: 50, alignment: "right" },
-        { text: "Frete", width: 45, alignment: "right" },
-        { text: "Lucro", width: 50, alignment: "right" },
+        { text: "Custo Uni.", width: 55, alignment: "right" },
+        { text: "C. Total", width: 55, alignment: "right" },
+        { text: "Lucro", width: 55, alignment: "right" },
+        { text: "Status", width: 60, alignment: "center" },
       ],
       data: pdfData,
+      footerRow: pdfFooterRow,
       observations: `Período: ${new Date(startDate).toLocaleDateString('pt-BR')} a ${new Date(endDate).toLocaleDateString('pt-BR')}`,
       orientation: "landscape",
     })
@@ -218,7 +237,7 @@ export function SalesReport() {
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2 items-center mb-2">
+      <div className="flex gap-2 items-center mb-2 flex-wrap">
         <label className="text-[11px]">Data Início:</label>
         <input
           type="date"
@@ -238,6 +257,29 @@ export function SalesReport() {
         </button>
       </div>
 
+      <div className="flex gap-2 items-center flex-wrap mb-2">
+        <label className="text-[11px]">Filtrar por Status:</label>
+        {statusOptions.map(status => (
+          <button
+            key={status.value}
+            className={`erp-button !min-w-0 !px-2 !py-1 !text-[10px] ${
+              selectedStatuses.has(status.value) ? '!bg-blue-200' : ''
+            }`}
+            onClick={() => toggleStatus(status.value)}
+          >
+            {selectedStatuses.has(status.value) ? '✓ ' : ''}{status.label}
+          </button>
+        ))}
+        {selectedStatuses.size > 0 && (
+          <button
+            className="erp-button !min-w-0 !px-2 !py-1 !text-[10px]"
+            onClick={() => setSelectedStatuses(new Set())}
+          >
+            ✕ Limpar
+          </button>
+        )}
+      </div>
+
       <div className="flex gap-2 items-center mb-2">
         <input
           type="checkbox"
@@ -248,6 +290,7 @@ export function SalesReport() {
       </div>
 
       <DataGrid
+        maxHeight="320px"
         columns={[
           {
             key: "checkbox",
@@ -261,92 +304,85 @@ export function SalesReport() {
               />
             ),
           },
-          { key: "sale_number", header: "Venda", width: "100px" },
+          { key: "sale_number", header: "Venda", width: "90px" },
           {
             key: "sale_date",
             header: "Data",
-            width: "100px",
-            render: (item) => new Date(item.sale_date).toLocaleDateString('pt-BR'),
+            width: "90px",
+            render: (item) => {
+              const [y, m, d] = item.sale_date.split('-')
+              return `${d}/${m}/${y}`
+            },
           },
-          { key: "customer_state", header: "UF", width: "50px" },
-          { key: "customer_name", header: "Cliente", width: "150px" },
-          { key: "product_name", header: "Produto", width: "150px" },
+          { key: "customer_state", header: "UF", width: "45px", align: "center" },
+          { key: "customer_name", header: "Cliente", width: "140px" },
+          { key: "product_name", header: "Produto", width: "140px" },
           {
             key: "quantity",
-            header: "Quantidade",
-            width: "80px",
+            header: "Qtd",
+            width: "60px",
             align: "right",
+            render: (item) => Math.round(Number(item.quantity)).toString(),
           },
           {
             key: "unit_price",
             header: "Valor Uni.",
-            width: "90px",
+            width: "85px",
             align: "right",
             render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
           },
           {
             key: "total_price",
             header: "Valor Total",
-            width: "100px",
+            width: "95px",
             align: "right",
             render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
           },
           {
+            key: "unit_cost",
+            header: "Custo Uni.",
+            width: "90px",
+            align: "right",
+            render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
+          },
+          {
             key: "total_cost",
             header: "C. Total",
-            width: "100px",
+            width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.total_cost).toFixed(2)}`,
           },
           {
-            key: "tax",
-            header: "Imposto",
-            width: "90px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.tax).toFixed(2)}`,
-          },
-          {
-            key: "freight",
-            header: "Frete",
-            width: "80px",
-            align: "right",
-            render: (item) => `R$ ${Number(item.freight).toFixed(2)}`,
-          },
-          {
             key: "profit",
             header: "Lucro",
-            width: "100px",
+            width: "90px",
             align: "right",
             render: (item) => `R$ ${Number(item.profit).toFixed(2)}`,
+          },
+          {
+            key: "status",
+            header: "Status",
+            width: "110px",
+            align: "center",
+            render: (item) => {
+              const statusMap: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
+                disputa: { label: "Disputa", color: "red" },
+                aguardando_julgamento: { label: "Aguard Julg", color: "red" },
+                homologado: { label: "Homologado", color: "yellow" },
+                em_producao: { label: "Em Produção", color: "cyan" },
+                em_transito: { label: "Em Trânsito", color: "cyan" },
+                aguardando_pagamento: { label: "Aguard Pag", color: "orange" },
+                liquidado: { label: "Liquidado", color: "green" },
+              }
+              const s = statusMap[item.status] || { label: item.status, color: "yellow" as const }
+              return <StatusBadge color={s.color}>{s.label}</StatusBadge>
+            },
           },
         ]}
         data={expandedData}
         onRowClick={() => {}}
       />
 
-      <div className="mt-2 text-[11px] erp-inset p-2">
-        <div className="font-bold mb-1">Totais do Período:</div>
-        <div className="grid grid-cols-6 gap-2">
-          <div>
-            <span className="font-bold">Quantidade:</span> {totals.quantity}
-          </div>
-          <div>
-            <span className="font-bold">V. Total:</span> R$ {totals.total_price.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">C. Total:</span> R$ {totals.total_cost.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">Imposto:</span> R$ {totals.tax.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">Frete:</span> R$ {totals.freight.toFixed(2)}
-          </div>
-          <div>
-            <span className="font-bold">Lucro:</span> R$ {totals.profit.toFixed(2)}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

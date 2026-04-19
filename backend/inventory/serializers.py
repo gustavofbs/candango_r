@@ -111,6 +111,21 @@ class SaleCreateSerializer(serializers.ModelSerializer):
             'discount', 'payment_method', 'nf', 'tax_percentage', 'status', 'notes', 'items'
         ]
     
+    def validate(self, attrs):
+        items_data = attrs.get('items', [])
+        errors = []
+        for item_data in items_data:
+            product = item_data.get('product')
+            quantity = item_data.get('quantity', 0)
+            if product and float(product.current_stock) < float(quantity):
+                errors.append(
+                    f"Produto com estoque indisponível: '{product.name}' "
+                    f"(estoque: {product.current_stock}, solicitado: {quantity})"
+                )
+        if errors:
+            raise serializers.ValidationError({'stock': errors})
+        return attrs
+
     def validate_sale_date(self, value):
         """Garante que a data seja interpretada corretamente sem conversão de timezone"""
         from datetime import datetime, date

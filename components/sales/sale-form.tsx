@@ -290,15 +290,19 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
       setSaving(false)
       console.error("Erro ao criar venda:", error)
       
-      // Mostra mensagem de erro detalhada
-      let errorMessage = "Erro ao criar venda"
-      if (error.response?.data) {
-        errorMessage = JSON.stringify(error.response.data, null, 2)
-      } else if (error.message) {
-        errorMessage = error.message
+      const responseData = error.response?.data
+      if (responseData?.stock) {
+        const msgs = Array.isArray(responseData.stock) ? responseData.stock : [responseData.stock]
+        alert(msgs.join('\n'))
+      } else {
+        let errorMessage = "Erro ao criar venda"
+        if (responseData) {
+          errorMessage = JSON.stringify(responseData, null, 2)
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        alert(`Erro ao criar venda:\n\n${errorMessage}`)
       }
-      
-      alert(`Erro ao criar venda:\n\n${errorMessage}`)
     }
   }
 
@@ -348,18 +352,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   value={formData.nf}
                   onChange={(e) => setFormData({ ...formData, nf: e.target.value })}
                   placeholder="Número da Nota Fiscal"
-                />
-              </FormField>
-              <FormField label="% Imposto:" inline>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  className="erp-input w-24"
-                  value={formData.tax_percentage}
-                  onChange={(e) => setFormData({ ...formData, tax_percentage: e.target.value === "" ? "" : Number(e.target.value) })}
-                  placeholder="0.00"
                 />
               </FormField>
             </div>
@@ -419,21 +411,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   </span>
                 </div>
               </FormField>
-              <FormField label="Frete:" inline>
-                <input
-                  type="text"
-                  className="erp-input w-32"
-                  value={newItem.freight === 0 ? "" : `R$ ${Number(newItem.freight).toFixed(2).replace('.', ',')}`}
-                  onChange={(e) => {
-                    // Remove tudo exceto números
-                    const numericValue = e.target.value.replace(/\D/g, '')
-                    // Converte centavos para reais (divide por 100)
-                    const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
-                    setNewItem({ ...newItem, freight: valueInReais })
-                  }}
-                  placeholder="R$ 0,00"
-                />
-              </FormField>
               <FormField label="Status:" inline>
                 <select
                   className="erp-select"
@@ -474,20 +451,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                 width: "90px",
                 align: "right",
                 render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
-              },
-              {
-                key: "tax",
-                header: "Imposto",
-                width: "80px",
-                align: "right",
-                render: (item) => `R$ ${Number(item.tax).toFixed(2)}`,
-              },
-              {
-                key: "freight",
-                header: "Frete",
-                width: "70px",
-                align: "right",
-                render: (item) => `R$ ${Number(item.freight).toFixed(2)}`,
               },
               {
                 key: "total_price",

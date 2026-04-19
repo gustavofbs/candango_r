@@ -36,6 +36,7 @@ interface PDFOptions {
   }
   columns: TableColumn[]
   data: any[]
+  footerRow?: Record<string, string>
   totals?: { label: string; value: string }[]
   observations?: string
   orientation?: "portrait" | "landscape"
@@ -50,6 +51,7 @@ export function generatePDF(options: PDFOptions) {
     clientInfo,
     columns,
     data,
+    footerRow,
     totals,
     observations,
     orientation = "portrait",
@@ -63,13 +65,23 @@ export function generatePDF(options: PDFOptions) {
   }))
 
   // Linhas de dados
-  const tableBody = data.map((row) =>
+  const tableBody: any[][] = data.map((row) =>
     columns.map((col) => ({
       text: row[col.text] || "",
       alignment: col.alignment || "left",
       fontSize: 9,
     }))
   )
+
+  // Linha de totais no rodapé da tabela
+  if (footerRow) {
+    const footerCells = columns.map((col) => ({
+      text: footerRow[col.text] || "",
+      style: "tableHeader",
+      alignment: col.alignment || "left",
+    }))
+    tableBody.push(footerCells)
+  }
 
   // Construir conteúdo do documento
   const content: any[] = [

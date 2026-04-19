@@ -241,6 +241,13 @@ class SaleViewSet(viewsets.ModelViewSet):
         
         return Response({'next_number': next_sale_number})
     
+    def perform_destroy(self, instance):
+        for item in instance.items.all():
+            product = item.product
+            product.current_stock = float(product.current_stock) + float(item.quantity)
+            product.save()
+        instance.delete()
+
     @action(detail=False, methods=['post'])
     def recalculate_profits(self, request):
         """Recalcula o lucro de todos os itens de venda"""

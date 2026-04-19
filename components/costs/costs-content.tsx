@@ -223,6 +223,23 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
     }))
   }, [filteredGroups])
 
+  const resumo = useMemo(() => {
+    const totals = {
+      'Camisa Lisa': 0,
+      'DTF/Silk/Sublimação': 0,
+      'Frete/Uber': 0,
+      'Imposto': 0,
+    }
+    filteredGroups.forEach(g => {
+      if (!selectedCosts.has(g.refinement_code)) return
+      const qty = Number(g.quantity || 0)
+      Object.keys(totals).forEach(type => {
+        totals[type as keyof typeof totals] += qty * Number(g.costs[type]?.value || 0)
+      })
+    })
+    return totals
+  }, [filteredGroups, selectedCosts])
+
   const costTypeLabels: Record<string, string> = {
     aviamentos: "Aviamentos",
     corte_tecido: "Corte Tecido",
@@ -279,7 +296,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
           />
         </div>
 
-        {groupedByColumns.map((columnGroup, groupIndex) => {
+      {groupedByColumns.map((columnGroup, groupIndex) => {
             const columns = [
               {
                 key: "select",
@@ -369,6 +386,18 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
             )
           })
         }
+
+        {selectedCosts.size > 0 && (
+          <div className="text-[11px] erp-inset p-2 mt-2">
+            <div className="font-bold mb-1">Resumo ({selectedCosts.size} selecionado{selectedCosts.size > 1 ? 's' : ''}):</div>
+            <div className="grid grid-cols-4 gap-2">
+              <div><span className="font-bold">C. Camisa Lisa:</span> R$ {resumo['Camisa Lisa'].toFixed(2)}</div>
+              <div><span className="font-bold">C. DTF/Silk/Sub.:</span> R$ {resumo['DTF/Silk/Sublimação'].toFixed(2)}</div>
+              <div><span className="font-bold">C. Frete/Uber:</span> R$ {resumo['Frete/Uber'].toFixed(2)}</div>
+              <div><span className="font-bold">C. Imposto:</span> R$ {resumo['Imposto'].toFixed(2)}</div>
+            </div>
+          </div>
+        )}
       </ErpWindow>
 
       {showRefinementForm && (
