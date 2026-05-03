@@ -68,8 +68,13 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
       onSave()
     } catch (error: any) {
       console.error("Erro ao salvar cliente:", error)
-      const errorMessage = error?.response?.data ? JSON.stringify(error.response.data) : "Erro ao salvar cliente"
-      alert(`Erro ao salvar cliente: ${errorMessage}`)
+      const data = error?.response?.data
+      if (data && typeof data === 'object') {
+        const msgs = Object.values(data).flat().join('\n')
+        alert(msgs || 'Erro ao salvar cliente')
+      } else {
+        alert('Erro ao salvar cliente')
+      }
     } finally {
       setSaving(false)
     }

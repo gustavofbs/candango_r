@@ -267,6 +267,18 @@ class ProductionCost(models.Model):
         verbose_name='Travado em'
     )
     
+    COST_CATEGORY_CHOICES = [
+        ('sale', 'Custo de Venda'),
+        ('production', 'Custo de Produção'),
+    ]
+    cost_category = models.CharField(
+        max_length=20,
+        choices=COST_CATEGORY_CHOICES,
+        default='sale',
+        verbose_name='Categoria',
+        help_text='sale = vinculado a venda; production = entrada de estoque/produção'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
 
     class Meta:

@@ -11,7 +11,8 @@ const menuItems = [
   { href: "/fornecedores", label: "Fornecedores", icon: "🏭" },
   { href: "/vendas", label: "Vendas", icon: "💰" },
   { href: "/despesas", label: "Despesas", icon: "💸" },
-  { href: "/custos", label: "Custos Produção", icon: "📋" },
+  { href: "/custos", label: "Custos de Venda", icon: "📋" },
+  { href: "/custos-producao", label: "Custos de Produção", icon: "🏭" },
   { href: "/relatorios", label: "Relatórios", icon: "📄" },
   { href: "/empresa", label: "Empresa", icon: "🏢" },
 ]

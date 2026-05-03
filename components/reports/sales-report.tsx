@@ -214,7 +214,7 @@ export function SalesReport() {
         { text: "Venda", width: 45 },
         { text: "Data", width: 50 },
         { text: "UF", width: 25 },
-        { text: "Cliente", width: 75 },
+        { text: "Cliente", width: "*" },
         { text: "Produto", width: 80 },
         { text: "Qtd", width: 35, alignment: "right" },
         { text: "Valor Uni.", width: 55, alignment: "right" },

@@ -32,6 +32,19 @@ class CustomerSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
+    def validate_document(self, value):
+        if not value:
+            return value
+        normalized = value.replace('.', '').replace('/', '').replace('-', '').strip()
+        existing = Customer.objects.exclude(pk=self.instance.pk if self.instance else None)
+        for obj in existing.filter(document__isnull=False).exclude(document=''):
+            if obj.document.replace('.', '').replace('/', '').replace('-', '').strip() == normalized:
+                raise serializers.ValidationError(
+                    f'Já existe um cliente cadastrado com este CNPJ/CPF ({value}). '
+                    f'Cadastro: {obj.code} - {obj.name}'
+                )
+        return value
+
 
 class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,6 +54,19 @@ class SupplierSerializer(serializers.ModelSerializer):
             'phone', 'zipcode', 'address', 'neighborhood', 'city', 'state', 'notes', 'active', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+
+    def validate_document(self, value):
+        if not value:
+            return value
+        normalized = value.replace('.', '').replace('/', '').replace('-', '').strip()
+        existing = Supplier.objects.exclude(pk=self.instance.pk if self.instance else None)
+        for obj in existing.filter(document__isnull=False).exclude(document=''):
+            if obj.document.replace('.', '').replace('/', '').replace('-', '').strip() == normalized:
+                raise serializers.ValidationError(
+                    f'Já existe um fornecedor cadastrado com este CNPJ ({value}). '
+                    f'Cadastro: {obj.code} - {obj.name}'
+                )
+        return value
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
@@ -63,7 +89,7 @@ class ProductionCostSerializer(serializers.ModelSerializer):
         model = ProductionCost
         fields = [
             'id', 'product', 'product_name', 'product_code', 'customer', 'customer_name', 'description', 
-            'cost_type', 'value', 'date', 'notes', 'quantity',
+            'cost_type', 'value', 'date', 'notes', 'quantity', 'cost_category',
             'refinement_code', 'refinement_name', 'is_locked', 
             'locked_by_sale', 'locked_by_sale_number', 'locked_by_sale_customer', 'locked_at', 'created_at'
         ]

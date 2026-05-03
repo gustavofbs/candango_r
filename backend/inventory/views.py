@@ -144,7 +144,87 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
         if is_locked is not None:
             queryset = queryset.filter(is_locked=is_locked.lower() == 'true')
         
+        cost_category = self.request.query_params.get('cost_category', None)
+        if cost_category:
+            queryset = queryset.filter(cost_category=cost_category)
+        
         return queryset
+
+    def _update_product_stock_and_price(self, product, qty, unit_cost, reverse=False):
+        """Update product stock and weighted average purchase_price."""
+        from decimal import Decimal
+        qty = Decimal(str(qty)) if qty else Decimal('0')
+        unit_cost = Decimal(str(unit_cost)) if unit_cost else Decimal('0')
+        if reverse:
+            new_stock = max(Decimal('0'), product.current_stock - qty)
+            product.current_stock = new_stock
+        else:
+            old_stock = product.current_stock
+            old_price = product.purchase_price
+            new_stock = old_stock + qty
+            if new_stock > 0:
+                product.purchase_price = ((old_stock * old_price) + (qty * unit_cost)) / new_stock
+            product.current_stock = new_stock
+        product.save(update_fields=['current_stock', 'purchase_price'])
+
+    @action(detail=False, methods=['post'])
+    def save_production_entry(self, request):
+        """
+        Cria um grupo de custos de produção e atualiza estoque/preço do produto.
+        Payload: {product_id, date, quantity, costs: [{cost_type, value}], notes}
+        """
+        from decimal import Decimal
+        import time
+        product_id = request.data.get('product_id')
+        date = request.data.get('date')
+        quantity = request.data.get('quantity')
+        costs = request.data.get('costs', [])
+        notes = request.data.get('notes', '')
+        if not product_id or not date or not quantity or not costs:
+            return Response({'error': 'Campos obrigatórios faltando'}, status=400)
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return Response({'error': 'Produto não encontrado'}, status=404)
+        qty = Decimal(str(quantity))
+        timestamp = str(int(time.time()))[-6:]
+        ref_code = f'PROD-{product.code}-{timestamp}'
+        for i, cost in enumerate(costs):
+            ProductionCost.objects.create(
+                product=product,
+                cost_type=cost['cost_type'],
+                value=Decimal(str(cost['value'])),
+                date=date,
+                quantity=qty if i == 0 else None,
+                refinement_code=ref_code,
+                refinement_name=ref_code,
+                notes=notes if notes and i == 0 else None,
+                cost_category='production',
+                description='',
+            )
+        total_unit_cost = sum(Decimal(str(c['value'])) for c in costs)
+        self._update_product_stock_and_price(product, qty, total_unit_cost)
+        return Response({'status': 'ok', 'refinement_code': ref_code})
+
+    @action(detail=False, methods=['post'])
+    def delete_production_group(self, request):
+        """
+        Exclui todos os custos de um grupo de produção e reverte o estoque.
+        Payload: {refinement_code}
+        """
+        from decimal import Decimal
+        ref_code = request.data.get('refinement_code')
+        if not ref_code:
+            return Response({'error': 'refinement_code obrigatório'}, status=400)
+        costs = ProductionCost.objects.filter(refinement_code=ref_code, cost_category='production')
+        main = costs.filter(quantity__isnull=False).select_related('product').first()
+        if main and main.quantity:
+            product = main.product
+            qty = Decimal(str(main.quantity))
+            product.current_stock = max(Decimal('0'), product.current_stock - qty)
+            product.save(update_fields=['current_stock'])
+        costs.delete()
+        return Response({'status': 'ok'})
     
     @action(detail=False, methods=['get'])
     def refinements(self, request):
@@ -178,9 +258,12 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
                     'locked_by_sale_number': cost.locked_by_sale.sale_number if cost.locked_by_sale else None,
                     'locked_at': cost.locked_at,
                     'costs': [],
-                    'total': 0
+                    'total': 0,
+                    'date': cost.date.isoformat() if cost.date else None,
                 }
             
+            if refinements[code]['quantity'] is None and cost.quantity:
+                refinements[code]['quantity'] = float(cost.quantity)
             refinements[code]['costs'].append({
                 'id': cost.id,
                 'cost_type': cost.cost_type,

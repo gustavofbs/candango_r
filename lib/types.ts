@@ -87,6 +87,7 @@ export interface ProductionCost {
   date: string
   notes: string | null
   quantity?: number | null
+  cost_category?: 'sale' | 'production'
   refinement_code?: string | null
   refinement_name?: string | null
   is_locked: boolean

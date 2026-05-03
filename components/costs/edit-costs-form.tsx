@@ -20,6 +20,8 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
   const refinementCode = costs.length > 0 ? costs[0].refinement_code : null
   const customerId = costs.length > 0 ? costs[0].customer : null
   const productId = costs.length > 0 ? costs[0].product : null
+  const costCategory = costs.length > 0 ? (costs[0] as any).cost_category : undefined
+  const costDate = costs.length > 0 ? costs[0].date : new Date().toISOString().split('T')[0]
 
   const [editedCosts, setEditedCosts] = useState(
     costs.map(cost => ({
@@ -33,7 +35,7 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [newCost, setNewCost] = useState({
-    date: new Date().toISOString().split("T")[0],
+    date: costDate || new Date().toISOString().split("T")[0],
     cost_type: "",
     value: 0,
   })
@@ -63,9 +65,13 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
       alert("O valor deve ser maior que zero")
       return
     }
+    if (!newCost.cost_type.trim()) {
+      alert("Informe o tipo de custo")
+      return
+    }
 
     try {
-      await costsApi.create({
+      const payload: any = {
         customer: customerId,
         product: productId || undefined,
         date: newCost.date,
@@ -73,11 +79,21 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
         cost_type: newCost.cost_type,
         description: "",
         refinement_code: refinementCode,
-      })
+        refinement_name: refinementCode,
+      }
+      if (costCategory) payload.cost_category = costCategory
+      const created = await costsApi.create(payload)
+      setEditedCosts(prev => [...prev, {
+        id: (created as any).id,
+        date: newCost.date,
+        value: newCost.value.toString(),
+        cost_type: newCost.cost_type,
+        description: "",
+      }])
       alert('Custo adicionado com sucesso!')
       setShowAddForm(false)
       setNewCost({
-        date: new Date().toISOString().split("T")[0],
+        date: costDate || new Date().toISOString().split("T")[0],
         cost_type: "",
         value: 0,
       })
@@ -92,6 +108,7 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
       for (let i = 0; i < editedCosts.length; i++) {
         const cost = editedCosts[i]
         const originalCost = costs[i]
+        if (!originalCost) continue // newly-added cost, already created
         await costsApi.update(cost.id, {
           customer: originalCost.customer,
           product: originalCost.product,
@@ -176,7 +193,7 @@ export function EditCostsForm({ costs, customers, products, onSave, onCancel }: 
         {editedCosts.map((cost, index) => {
           const originalCost = costs[index]
           return (
-            <FieldGroup key={cost.id} label={`Custo ${index + 1} - ${originalCost.cost_type_display || originalCost.cost_type}`}>
+            <FieldGroup key={cost.id} label={`Custo ${index + 1} - ${originalCost?.cost_type_display || originalCost?.cost_type || cost.cost_type}`}>
               <div className="grid grid-cols-2 gap-4">
                 <FormField label="Data:" inline>
                   <input

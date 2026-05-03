@@ -254,12 +254,12 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
 
   return (
     <div className="space-y-2">
-      <ErpWindow title="Custos de Produção">
+      <ErpWindow title="Custos de Venda">
         <Toolbar
           buttons={[
             { label: "Novo Custo", icon: "➕", onClick: () => setShowRefinementForm(true) },
             { 
-              label: "Linha de Produção", 
+              label: "Custos de Produção", 
               icon: "⏳", 
               onClick: () => setFilterStatus('pending'),
               active: filterStatus === 'pending'

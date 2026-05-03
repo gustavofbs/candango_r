@@ -67,9 +67,15 @@ export function SupplierForm({ supplier, onSave, onCancel }: SupplierFormProps) 
         await suppliersApi.create(formData)
       }
       onSave()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar fornecedor:", error)
-      alert("Erro ao salvar fornecedor")
+      const data = error?.response?.data
+      if (data && typeof data === 'object') {
+        const msgs = Object.values(data).flat().join('\n')
+        alert(msgs || 'Erro ao salvar fornecedor')
+      } else {
+        alert('Erro ao salvar fornecedor')
+      }
     } finally {
       setSaving(false)
     }
