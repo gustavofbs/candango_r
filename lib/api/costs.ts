@@ -50,7 +50,7 @@ export const costsApi = {
   },
 
   update: async (id: number, data: Partial<ProductionCost>) => {
-    const response = await apiClient.put<ProductionCost>(`/production-costs/${id}/`, data)
+    const response = await apiClient.patch<ProductionCost>(`/production-costs/${id}/`, data)
     return response.data
   },
 

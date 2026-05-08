@@ -133,9 +133,10 @@ class SaleCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = [
-            'sale_number', 'sale_type', 'customer', 'sale_date', 'total_amount',
+            'id', 'sale_number', 'sale_type', 'customer', 'sale_date', 'total_amount',
             'discount', 'payment_method', 'nf', 'tax_percentage', 'status', 'notes', 'items'
         ]
+        read_only_fields = ['id']
     
     def validate(self, attrs):
         items_data = attrs.get('items', [])

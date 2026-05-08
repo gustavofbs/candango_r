@@ -40,6 +40,7 @@ export function CostsContent({ initialCosts, products, customers }: CostsContent
   const [filter, setFilter] = useState("")
   const [startDate, setStartDate] = useState(() => {
     const date = new Date()
+    date.setMonth(date.getMonth() - 6)
     date.setDate(1)
     return date.toISOString().split('T')[0]
   })

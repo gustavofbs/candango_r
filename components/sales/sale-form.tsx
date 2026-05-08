@@ -249,8 +249,8 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
       // Criar custos de produção para itens com create_refinement marcado
       const itemsWithRefinement = items.filter(item => item.create_refinement)
       if (itemsWithRefinement.length > 0 && createdSale) {
-        const saleId = createdSale.id || sale?.id
-        const saleNumber = createdSale.sale_number || sale?.sale_number
+        const saleId = (createdSale as any).id || sale?.id
+        const resolvedSaleNumber = (createdSale as any).sale_number || sale?.sale_number
         
         // Tipos de custo padrão que serão criados automaticamente
         const defaultCostTypes = [
@@ -260,6 +260,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
           { cost_type: 'Imposto', description: 'Impostos e taxas' },
         ]
         
+        const costErrors: string[] = []
         for (const item of itemsWithRefinement) {
           try {
             // Criar 4 custos de produção padrão para cada item
@@ -270,17 +271,23 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                 description: costType.description,
                 cost_type: costType.cost_type,
                 value: 0,
-                date: formData.sale_date,
-                notes: `Criado automaticamente pela venda ${saleNumber}`,
-                refinement_code: `REF-${saleNumber}-${item.product_id}`,
-                refinement_name: `Venda ${saleNumber}`,
+                date: new Date().toISOString().split('T')[0],
+                notes: `Criado automaticamente pela venda ${resolvedSaleNumber}`,
+                refinement_code: `REF-${resolvedSaleNumber}-${item.product_id}`,
+                refinement_name: `Venda ${resolvedSaleNumber}`,
                 locked_by_sale: saleId,
                 quantity: item.quantity,
+                cost_category: 'sale',
               })
             }
-          } catch (error) {
-            console.error(`Erro ao criar custos de produção para item ${item.product_name}:`, error)
+          } catch (error: any) {
+            console.error(`Erro ao criar custos para item ${item.product_name}:`, error)
+            const msg = error?.response?.data ? JSON.stringify(error.response.data) : error?.message
+            costErrors.push(`${item.product_name}: ${msg}`)
           }
+        }
+        if (costErrors.length > 0) {
+          alert(`Venda salva, mas houve erro ao criar custos:\n\n${costErrors.join('\n')}`)
         }
       }
 
