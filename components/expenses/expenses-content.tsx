@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -15,6 +15,11 @@ interface ExpensesContentProps {
 
 export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
   const [expenses, setExpenses] = useState(Array.isArray(initialExpenses) ? initialExpenses : [])
+
+  useEffect(() => {
+    setExpenses(Array.isArray(initialExpenses) ? initialExpenses : [])
+  }, [initialExpenses])
+
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)

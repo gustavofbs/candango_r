@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -28,6 +28,11 @@ interface ProductionInputContentProps {
 
 export function ProductionInputContent({ initialGroups, products }: ProductionInputContentProps) {
   const [groups, setGroups] = useState<ProductionRefinementGroup[]>(initialGroups)
+
+  useEffect(() => {
+    setGroups(Array.isArray(initialGroups) ? initialGroups : [])
+  }, [initialGroups])
+
   const [showForm, setShowForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [costsToEdit, setCostsToEdit] = useState<ProductionCost[]>([])

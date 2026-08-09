@@ -1,16 +1,15 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { SuppliersContent } from "@/components/suppliers/suppliers-content"
 import { suppliersApi } from "@/lib/api"
 
-// Desabilitar cache para sempre buscar dados frescos
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function SuppliersPage() {
+  const [suppliers, setSuppliers] = useState<any[]>([])
 
-export default async function SuppliersPage() {
-  try {
-    const suppliers = await suppliersApi.getAll()
-    return <SuppliersContent initialSuppliers={suppliers} />
-  } catch (error) {
-    console.error("Erro ao carregar fornecedores:", error)
-    return <SuppliersContent initialSuppliers={[]} />
-  }
+  useEffect(() => {
+    suppliersApi.getAll().then((data: any) => setSuppliers(Array.isArray(data) ? data : []))
+  }, [])
+
+  return <SuppliersContent initialSuppliers={suppliers} />
 }

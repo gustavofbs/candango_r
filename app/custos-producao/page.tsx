@@ -1,22 +1,22 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { ProductionInputContent } from "@/components/costs/production-input-content"
 import { costsApi, productsApi } from "@/lib/api"
-import type { Product } from "@/lib/types"
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function ProductionCostsPage() {
+  const [groups, setGroups] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
 
-export default async function ProductionCostsPage() {
-  try {
-    const [groups, products] = await Promise.all([
-      costsApi.getRefinements(undefined, true, "production"),
+  useEffect(() => {
+    Promise.all([
+      costsApi.getRefinements(undefined, true, 'production'),
       productsApi.getAll(),
-    ])
+    ]).then(([g, p]: any[]) => {
+      setGroups(Array.isArray(g) ? g : [])
+      setProducts((Array.isArray(p) ? p : []).filter((x: any) => x.active))
+    })
+  }, [])
 
-    const activeProducts = products.filter((p: Product) => p.active)
-
-    return <ProductionInputContent initialGroups={groups as any} products={activeProducts} />
-  } catch (error) {
-    console.error("Erro ao carregar custos de produção:", error)
-    return <ProductionInputContent initialGroups={[]} products={[]} />
-  }
+  return <ProductionInputContent initialGroups={groups} products={products} />
 }

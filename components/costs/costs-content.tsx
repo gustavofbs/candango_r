@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -34,6 +34,11 @@ interface RefinementGroup {
 
 export function CostsContent({ initialCosts, products, customers }: CostsContentProps) {
   const [costs, setCosts] = useState(Array.isArray(initialCosts) ? initialCosts : [])
+
+  useEffect(() => {
+    setCosts(Array.isArray(initialCosts) ? initialCosts : [])
+  }, [initialCosts])
+
   const [showRefinementForm, setShowRefinementForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [costsToEdit, setCostsToEdit] = useState<ProductionCost[]>([])

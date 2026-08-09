@@ -1,16 +1,16 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { CustomersContent } from "@/components/customers/customers-content"
 import { customersApi } from "@/lib/api"
+import type { Customer } from "@/lib/types"
 
-// Desabilitar cache para sempre buscar dados frescos
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([])
 
-export default async function CustomersPage() {
-  try {
-    const customers = await customersApi.getAll()
-    return <CustomersContent initialCustomers={customers} />
-  } catch (error) {
-    console.error("Erro ao carregar clientes:", error)
-    return <CustomersContent initialCustomers={[]} />
-  }
+  useEffect(() => {
+    customersApi.getAll().then((data: any) => setCustomers(Array.isArray(data) ? data : []))
+  }, [])
+
+  return <CustomersContent initialCustomers={customers} />
 }

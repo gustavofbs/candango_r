@@ -1,25 +1,21 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { SalesContent } from "@/components/sales/sales-content"
 import { salesApi, customersApi, productsApi } from "@/lib/api"
-import type { Customer, Product } from "@/lib/types"
 
-// Desabilitar cache para sempre buscar dados frescos
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function SalesPage() {
+  const [sales, setSales] = useState<any[]>([])
+  const [customers, setCustomers] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
 
-export default async function SalesPage() {
-  try {
-    const [sales, customers, products] = await Promise.all([
-      salesApi.getAll(),
-      customersApi.getAll(),
-      productsApi.getAll(),
-    ])
+  useEffect(() => {
+    Promise.all([salesApi.getAll(), customersApi.getAll(), productsApi.getAll()]).then(([s, c, p]: any[]) => {
+      setSales(Array.isArray(s) ? s : [])
+      setCustomers((Array.isArray(c) ? c : []).filter((x: any) => x.active))
+      setProducts((Array.isArray(p) ? p : []).filter((x: any) => x.active))
+    })
+  }, [])
 
-    const activeCustomers = customers.filter((c: Customer) => c.active)
-    const activeProducts = products.filter((p: Product) => p.active)
-
-    return <SalesContent initialSales={sales} customers={activeCustomers} products={activeProducts} />
-  } catch (error) {
-    console.error("Erro ao carregar vendas:", error)
-    return <SalesContent initialSales={[]} customers={[]} products={[]} />
-  }
+  return <SalesContent initialSales={sales} customers={customers} products={products} />
 }

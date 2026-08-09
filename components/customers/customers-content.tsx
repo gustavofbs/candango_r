@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -15,6 +15,11 @@ interface CustomersContentProps {
 
 export function CustomersContent({ initialCustomers }: CustomersContentProps) {
   const [customers, setCustomers] = useState(Array.isArray(initialCustomers) ? initialCustomers : [])
+
+  useEffect(() => {
+    setCustomers(Array.isArray(initialCustomers) ? initialCustomers : [])
+  }, [initialCustomers])
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)

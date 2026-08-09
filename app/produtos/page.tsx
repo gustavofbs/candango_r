@@ -1,20 +1,19 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { ProductsContent } from "@/components/products/products-content"
 import { productsApi, categoriesApi } from "@/lib/api"
 
-// Desabilitar cache para sempre buscar dados frescos
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
 
-export default async function ProductsPage() {
-  try {
-    const [products, categories] = await Promise.all([
-      productsApi.getAll(),
-      categoriesApi.getAll(),
-    ])
+  useEffect(() => {
+    Promise.all([productsApi.getAll(), categoriesApi.getAll()]).then(([p, c]: any[]) => {
+      setProducts(Array.isArray(p) ? p : [])
+      setCategories(Array.isArray(c) ? c : [])
+    })
+  }, [])
 
-    return <ProductsContent initialProducts={products} categories={categories} />
-  } catch (error) {
-    console.error("Erro ao carregar produtos:", error)
-    return <ProductsContent initialProducts={[]} categories={[]} />
-  }
+  return <ProductsContent initialProducts={products} categories={categories} />
 }

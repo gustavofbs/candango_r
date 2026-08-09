@@ -17,6 +17,11 @@ interface ProductsContentProps {
 export function ProductsContent({ initialProducts, categories: initialCategories }: ProductsContentProps) {
   const [products, setProducts] = useState(Array.isArray(initialProducts) ? initialProducts : [])
   const [categories, setCategories] = useState(Array.isArray(initialCategories) ? initialCategories : [])
+
+  useEffect(() => {
+    setProducts(Array.isArray(initialProducts) ? initialProducts : [])
+  }, [initialProducts])
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()

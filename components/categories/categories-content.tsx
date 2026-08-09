@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { DataGrid } from "@/components/erp/data-grid"
 import { Toolbar } from "@/components/erp/toolbar"
@@ -13,6 +13,11 @@ interface CategoriesContentProps {
 
 export function CategoriesContent({ initialCategories }: CategoriesContentProps) {
   const [categories, setCategories] = useState(Array.isArray(initialCategories) ? initialCategories : [])
+
+  useEffect(() => {
+    setCategories(Array.isArray(initialCategories) ? initialCategories : [])
+  }, [initialCategories])
+
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
   const [showForm, setShowForm] = useState(false)

@@ -1,18 +1,15 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { ExpensesContent } from "@/components/expenses/expenses-content"
 import { expensesApi } from "@/lib/api"
 
-// Desabilitar cache para sempre buscar dados frescos
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState<any[]>([])
 
-export default async function ExpensesPage() {
-  let expenses = []
-
-  try {
-    expenses = await expensesApi.getAll()
-  } catch (error) {
-    console.error("Erro ao carregar despesas:", error)
-  }
+  useEffect(() => {
+    expensesApi.getAll().then((data: any) => setExpenses(Array.isArray(data) ? data : []))
+  }, [])
 
   return <ExpensesContent initialExpenses={expenses} />
 }

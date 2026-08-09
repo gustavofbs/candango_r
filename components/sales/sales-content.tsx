@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SaleForm } from "@/components/sales/sale-form"
 import { MonthlySummary } from "@/components/sales/monthly-summary"
 import { ConfirmDialog } from "@/components/erp/confirm-dialog"
@@ -15,6 +15,11 @@ interface SalesContentProps {
 
 export function SalesContent({ initialSales, customers, products }: SalesContentProps) {
   const [sales, setSales] = useState(Array.isArray(initialSales) ? initialSales : [])
+
+  useEffect(() => {
+    setSales(Array.isArray(initialSales) ? initialSales : [])
+  }, [initialSales])
+
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
