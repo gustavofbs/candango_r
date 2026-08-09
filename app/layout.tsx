@@ -2,7 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { Sidebar } from "@/components/erp/sidebar"
+import { AppShell } from "@/components/erp/app-shell"
+import { AuthProvider } from "@/contexts/auth-context"
 
 export const metadata: Metadata = {
   title: "Sistema de Controle de Estoque",
@@ -35,17 +36,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="font-sans antialiased min-h-screen">
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 p-2 overflow-auto">
-            <div className="erp-outset p-1 mb-2">
-              <div className="erp-title-bar">
-                <span>EMPRESA: M.O.B SORTE SERIGRAFIA E BRINDES</span>
-              </div>
-            </div>
-            {children}
-          </main>
-        </div>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

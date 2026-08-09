@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: "📊" },
@@ -19,13 +20,18 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { user, logout } = useAuth()
+
+  const displayName = user
+    ? (user.first_name ? `${user.first_name}` : user.username)
+    : ""
 
   return (
-    <div className="w-48 erp-outset h-full">
+    <div className="w-48 erp-outset h-full flex flex-col">
       <div className="erp-title-bar">
         <span>Menu Principal</span>
       </div>
-      <div className="p-1">
+      <div className="p-1 flex-1 overflow-auto">
         {menuItems.map((item) => (
           <Link
             key={item.href}
@@ -38,6 +44,29 @@ export function Sidebar() {
             {item.label}
           </Link>
         ))}
+        {user?.is_staff && (
+          <Link
+            href="/usuarios"
+            className={`block px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white ${
+              pathname === "/usuarios" ? "bg-[#000080] text-white" : ""
+            }`}
+          >
+            <span className="mr-2">👤</span>
+            Usuários
+          </Link>
+        )}
+      </div>
+      <div className="p-1 border-t border-[#808080]">
+        <div className="text-[10px] text-gray-600 px-2 py-1 truncate" title={user?.username}>
+          👤 {displayName}
+          {user?.is_staff && <span className="ml-1 text-[9px] text-[#000080]">(admin)</span>}
+        </div>
+        <button
+          onClick={logout}
+          className="w-full text-left px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white"
+        >
+          🚪 Sair
+        </button>
       </div>
     </div>
   )

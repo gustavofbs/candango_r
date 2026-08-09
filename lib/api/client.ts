@@ -1,15 +1,9 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig, type AxiosResponse } from "axios"
 
-// Determinar a URL base correta
-// No servidor (Server Components): usar URL interna do Docker
-// No cliente (navegador): usar localhost
 const getBaseURL = () => {
-  // Se estamos no servidor (typeof window === 'undefined')
   if (typeof window === 'undefined') {
-    // Usar URL interna do Docker para comunicação entre containers
     return process.env.API_URL || "http://backend:8000/api"
   }
-  // Se estamos no cliente (navegador)
   return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 }
 
@@ -22,20 +16,25 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    }
     return config
   },
-  (error: AxiosError) => {
-    return Promise.reject(error)
-  }
+  (error: AxiosError) => Promise.reject(error)
 )
 
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response
-  },
+  (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      console.error("Unauthorized access")
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      document.cookie = 'access_token=; Max-Age=0; path=/'
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }
