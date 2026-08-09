@@ -4,10 +4,20 @@ from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
+    allowed_pages = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined', 'allowed_pages']
         read_only_fields = ['id', 'date_joined']
+
+    def get_allowed_pages(self, obj):
+        if obj.is_staff:
+            return None
+        try:
+            return obj.profile.allowed_pages
+        except Exception:
+            return None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

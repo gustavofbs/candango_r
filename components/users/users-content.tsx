@@ -6,7 +6,21 @@ import { usersApi } from "@/lib/api/users"
 import type { AppUser } from "@/lib/api/users"
 import { useAuth } from "@/contexts/auth-context"
 
-type FormMode = "create" | "edit" | "change_password" | null
+type FormMode = "create" | "edit" | "change_password" | "permissions" | null
+
+const ALL_PAGES = [
+  { href: "/", label: "Dashboard" },
+  { href: "/produtos", label: "Produtos" },
+  { href: "/categorias", label: "Categorias" },
+  { href: "/clientes", label: "Clientes" },
+  { href: "/fornecedores", label: "Fornecedores" },
+  { href: "/vendas", label: "Vendas" },
+  { href: "/despesas", label: "Despesas" },
+  { href: "/custos", label: "Custos de Venda" },
+  { href: "/custos-producao", label: "Custos de Produção" },
+  { href: "/relatorios", label: "Relatórios" },
+  { href: "/empresa", label: "Empresa" },
+]
 
 interface UserFormState {
   username: string
@@ -46,6 +60,7 @@ export function UsersContent() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [permPages, setPermPages] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadUsers()
@@ -93,6 +108,18 @@ export function UsersContent() {
     setError("")
     setSuccess("")
     setMode("change_password")
+  }
+
+  const openPermissions = (u: AppUser) => {
+    setSelectedUser(u)
+    setError("")
+    setSuccess("")
+    if (u.allowed_pages === null || u.allowed_pages === undefined) {
+      setPermPages(new Set(ALL_PAGES.map((p) => p.href)))
+    } else {
+      setPermPages(new Set(u.allowed_pages))
+    }
+    setMode("permissions")
   }
 
   const closeForm = () => {
@@ -155,6 +182,24 @@ export function UsersContent() {
       } else {
         setError("Erro ao salvar.")
       }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser) return
+    setSaving(true)
+    setError("")
+    try {
+      const allSelected = ALL_PAGES.every((p) => permPages.has(p.href))
+      const pages = allSelected ? null : Array.from(permPages) as string[]
+      await usersApi.setPermissions(selectedUser.id, pages)
+      setSuccess("Permissões atualizadas com sucesso.")
+      await loadUsers()
+      setTimeout(closeForm, 1200)
+    } catch {
+      setError("Erro ao salvar permissões.")
     } finally {
       setSaving(false)
     }
@@ -233,6 +278,14 @@ export function UsersContent() {
                       >
                         Senha
                       </button>
+                      {!u.is_staff && (
+                        <button
+                          className="erp-button !min-w-0 !px-2 !py-0 !text-[10px] mr-1"
+                          onClick={() => openPermissions(u)}
+                        >
+                          Permissões
+                        </button>
+                      )}
                       {u.id !== currentUser?.id && (
                         <button
                           className="erp-button !min-w-0 !px-2 !py-0 !text-[10px]"
@@ -255,6 +308,7 @@ export function UsersContent() {
           title={
             mode === "create" ? "Novo Usuário" :
             mode === "edit" ? `Editar: ${selectedUser?.username}` :
+            mode === "permissions" ? `Permissões: ${selectedUser?.username}` :
             `Alterar Senha: ${selectedUser?.username}`
           }
         >
@@ -352,6 +406,53 @@ export function UsersContent() {
               </>
             )}
 
+            {mode === "permissions" && selectedUser && (
+              <div className="space-y-2">
+                {selectedUser.is_staff ? (
+                  <div className="text-[11px] text-gray-500 erp-inset p-2">
+                    Administradores têm acesso a todas as telas automaticamente.
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-[11px] mb-2">
+                      Selecione as telas que <b>{selectedUser.username}</b> pode acessar:
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {ALL_PAGES.map((page) => (
+                        <label key={page.href} className="flex items-center gap-1 text-[11px] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={permPages.has(page.href)}
+                            onChange={(e) => {
+                              const next = new Set(permPages)
+                              if (e.target.checked) next.add(page.href)
+                              else next.delete(page.href)
+                              setPermPages(next)
+                            }}
+                          />
+                          {page.label}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        className="erp-button !text-[10px] !py-0"
+                        onClick={() => setPermPages(new Set(ALL_PAGES.map((p) => p.href)))}
+                      >
+                        Selecionar Todos
+                      </button>
+                      <button
+                        className="erp-button !text-[10px] !py-0"
+                        onClick={() => setPermPages(new Set())}
+                      >
+                        Desmarcar Todos
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {mode === "change_password" && (
               <div className="space-y-2">
                 {!isAdminChangingOtherPassword && (
@@ -394,7 +495,11 @@ export function UsersContent() {
             )}
 
             <div className="flex gap-2 pt-2">
-              <button className="erp-button" onClick={handleSave} disabled={saving}>
+              <button
+                className="erp-button"
+                onClick={mode === "permissions" ? handleSavePermissions : handleSave}
+                disabled={saving}
+              >
                 {saving ? "Salvando..." : "💾 Salvar"}
               </button>
               <button className="erp-button" onClick={closeForm}>Cancelar</button>

@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from .models import UserProfile
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer, ChangePasswordSerializer
 )
@@ -56,6 +57,16 @@ class UserViewSet(viewsets.ModelViewSet):
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response({'detail': 'Senha alterada com sucesso.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def set_permissions(self, request, pk=None):
+        user = self.get_object()
+        allowed_pages = request.data.get('allowed_pages', None)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.allowed_pages = allowed_pages
+        profile.save()
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def reset_password(self, request, pk=None):

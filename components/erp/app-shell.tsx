@@ -6,16 +6,34 @@ import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { useAuth } from "@/contexts/auth-context"
 
+const PROTECTED_PATHS = [
+  '/', '/produtos', '/categorias', '/clientes', '/fornecedores',
+  '/vendas', '/despesas', '/custos', '/custos-producao', '/relatorios', '/empresa',
+]
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading, isAuthenticated, user } = useAuth()
   const isLoginPage = pathname === '/login'
+
+  const hasPageAccess = !isAuthenticated || !user || user.is_staff ||
+    user.allowed_pages === null ||
+    user.allowed_pages === undefined ||
+    pathname === '/' ||
+    !PROTECTED_PATHS.includes(pathname) ||
+    (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(pathname))
 
   useEffect(() => {
     if (!isLoginPage && !isLoading && !isAuthenticated) {
       window.location.href = '/login'
     }
   }, [isLoginPage, isLoading, isAuthenticated])
+
+  useEffect(() => {
+    if (!isLoginPage && !isLoading && isAuthenticated && !hasPageAccess && pathname !== '/') {
+      window.location.href = '/'
+    }
+  }, [isLoginPage, isLoading, isAuthenticated, hasPageAccess, pathname])
 
   if (isLoginPage) {
     return <>{children}</>

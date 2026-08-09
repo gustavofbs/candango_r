@@ -26,13 +26,21 @@ export function Sidebar() {
     ? (user.first_name ? `${user.first_name}` : user.username)
     : ""
 
+  const visibleItems = user?.is_staff
+    ? menuItems
+    : menuItems.filter(item =>
+        user?.allowed_pages === null ||
+        user?.allowed_pages === undefined ||
+        (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(item.href))
+      )
+
   return (
     <div className="w-48 erp-outset h-full flex flex-col">
       <div className="erp-title-bar">
         <span>Menu Principal</span>
       </div>
       <div className="p-1 flex-1 overflow-auto">
-        {menuItems.map((item) => (
+        {visibleItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
