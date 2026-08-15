@@ -17,6 +17,7 @@ interface DashboardData {
   monthlyProfit: number
   monthlyExpenses: number
   cumulativeResult: number
+  annualRevenue: number
   selectedMonth: number
   selectedYear: number
 }
@@ -60,11 +61,11 @@ export function DashboardContent() {
     )
   }
 
-  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, monthlyResult, monthlyProfit, monthlyExpenses, cumulativeResult } = data
+  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, monthlyResult, monthlyProfit, monthlyExpenses, cumulativeResult, annualRevenue } = data
   return (
     <div className="space-y-2">
       <ErpWindow title="Dashboard - Visão Geral">
-        <div className="grid grid-cols-5 gap-2 mb-4">
+        <div className="grid grid-cols-6 gap-2 mb-4">
           <div className="erp-inset p-3 text-center">
             <div className="text-2xl font-bold text-[#000080]">{totalProducts}</div>
             <div className="text-[11px]">Produtos Cadastrados</div>
@@ -85,7 +86,7 @@ export function DashboardContent() {
             >
               R$ {formatCurrency(cumulativeResult)}
             </div>
-            <div className="text-[11px]">Resultado Acumulado</div>
+            <div className="text-[11px]">Lucro Acumulado</div>
           </div>
           <div className="erp-inset p-3 text-center">
             <div
@@ -98,6 +99,15 @@ export function DashboardContent() {
             <div className="text-[11px]">Resultado Mensal</div>
             <div className="text-[9px] text-gray-600 mt-1">
               Lucro: R$ {formatCurrency(monthlyProfit)} - Despesas: R$ {formatCurrency(monthlyExpenses)}
+            </div>
+          </div>
+          <div className="erp-inset p-3 text-center">
+            <div className="text-2xl font-bold text-[#008000]">
+              R$ {formatCurrency(annualRevenue)}
+            </div>
+            <div className="text-[11px]">Faturamento Anual</div>
+            <div className="text-[9px] text-gray-600 mt-1">
+              Bruto {selectedYear}
             </div>
           </div>
         </div>

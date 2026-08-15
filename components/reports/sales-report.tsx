@@ -124,6 +124,20 @@ export function SalesReport() {
     return rows
   }, [filteredSales])
 
+  const summary = useMemo(() => {
+    const rows = selectedItems.size > 0
+      ? expandedData.filter((_: any, idx: number) => selectedItems.has(idx))
+      : expandedData
+    const salesIds = new Set(rows.map((r: any) => r.sale_id))
+    return {
+      sale_count: salesIds.size,
+      total_price: rows.reduce((s: number, r: any) => s + Number(r.total_price), 0),
+      total_cost: rows.reduce((s: number, r: any) => s + Number(r.total_cost), 0),
+      total_profit: rows.reduce((s: number, r: any) => s + Number(r.profit), 0),
+      is_selection: selectedItems.size > 0,
+    }
+  }, [expandedData, selectedItems])
+
   const toggleSelectAll = () => {
     if (selectedItems.size === expandedData.length) {
       setSelectedItems(new Set())
@@ -290,7 +304,7 @@ export function SalesReport() {
       </div>
 
       <DataGrid
-        maxHeight="320px"
+        maxHeight="300px"
         columns={[
           {
             key: "checkbox",
@@ -382,6 +396,24 @@ export function SalesReport() {
         data={expandedData}
         onRowClick={() => {}}
       />
+
+      <div className="mt-2 text-[11px] erp-inset p-2">
+        <div className="font-bold mb-1">
+          Resumo {'>>'}{summary.is_selection && <span className="font-normal text-[10px] ml-1 text-blue-700">(seleção: {selectedItems.size} itens)</span>}
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          <div><span className="font-bold">Vendas:</span> {summary.sale_count}</div>
+          <div><span className="font-bold">V. Total:</span> R$ {summary.total_price.toFixed(2)}</div>
+          <div><span className="font-bold">C. Total:</span> R$ {summary.total_cost.toFixed(2)}</div>
+          <div><span className="font-bold">Lucro:</span> R$ {summary.total_profit.toFixed(2)}</div>
+          <div>
+            <span className="font-bold">Margem:</span>{" "}
+            {summary.total_price > 0
+              ? ((summary.total_profit / summary.total_price) * 100).toFixed(1)
+              : "0.0"}%
+          </div>
+        </div>
+      </div>
 
     </div>
   )

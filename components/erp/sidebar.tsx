@@ -35,46 +35,46 @@ export function Sidebar() {
       )
 
   return (
-    <div className="w-48 erp-outset h-full flex flex-col">
+    <div className="erp-outset">
       <div className="erp-title-bar">
-        <span>Menu Principal</span>
+        <span>Sistema de Controle de Estoque v1.0</span>
       </div>
-      <div className="p-1 flex-1 overflow-auto">
+      <div className="flex items-center flex-wrap">
         {visibleItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`block px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white ${
+            className={`px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white whitespace-nowrap ${
               pathname === item.href ? "bg-[#000080] text-white" : ""
             }`}
           >
-            <span className="mr-2">{item.icon}</span>
+            <span className="mr-1">{item.icon}</span>
             {item.label}
           </Link>
         ))}
         {user?.is_staff && (
           <Link
             href="/usuarios"
-            className={`block px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white ${
+            className={`px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white whitespace-nowrap ${
               pathname === "/usuarios" ? "bg-[#000080] text-white" : ""
             }`}
           >
-            <span className="mr-2">👤</span>
+            <span className="mr-1">👤</span>
             Usuários
           </Link>
         )}
-      </div>
-      <div className="p-1 border-t border-[#808080]">
-        <div className="text-[10px] text-gray-600 px-2 py-1 truncate" title={user?.username}>
-          👤 {displayName}
-          {user?.is_staff && <span className="ml-1 text-[9px] text-[#000080]">(admin)</span>}
+        <div className="ml-auto flex items-center gap-2 px-2 border-l border-[#808080]">
+          <span className="text-[10px] text-gray-600 whitespace-nowrap" title={user?.username}>
+            👤 {displayName}
+            {user?.is_staff && <span className="ml-1 text-[9px] text-[#000080]">(admin)</span>}
+          </span>
+          <button
+            onClick={logout}
+            className="px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white whitespace-nowrap"
+          >
+            🚪 Sair
+          </button>
         </div>
-        <button
-          onClick={logout}
-          className="w-full text-left px-2 py-1 text-[11px] hover:bg-[#000080] hover:text-white"
-        >
-          🚪 Sair
-        </button>
       </div>
     </div>
   )

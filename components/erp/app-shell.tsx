@@ -48,14 +48,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col h-screen">
       <Sidebar />
       <main className="flex-1 p-2 overflow-auto">
-        <div className="erp-outset p-1 mb-2">
-          <div className="erp-title-bar">
-            <span>Sistema de Controle de Estoque v1.0 - [Empresa: MINHA EMPRESA LTDA]</span>
-          </div>
-        </div>
         {children}
       </main>
     </div>

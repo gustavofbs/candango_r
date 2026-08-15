@@ -11,6 +11,7 @@ interface DashboardData {
   monthlyProfit: number
   monthlyExpenses: number
   cumulativeResult: number
+  annualRevenue: number
   selectedMonth: number
   selectedYear: number
 }

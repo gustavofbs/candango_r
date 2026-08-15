@@ -461,7 +461,12 @@ def dashboard_view(request):
             cumulative_expenses = 0
         
         cumulative_result = float(cumulative_profit) - float(cumulative_expenses)
-        
+
+        # Faturamento bruto anual (soma de total_price de todos os itens do ano)
+        annual_revenue = SaleItem.objects.filter(
+            sale__sale_date__year=year
+        ).aggregate(total=Sum('total_price'))['total'] or 0
+
         data = {
             'totalProducts': total_products,
             'totalCustomers': total_customers,
@@ -472,6 +477,7 @@ def dashboard_view(request):
             'monthlyProfit': float(monthly_profit),
             'monthlyExpenses': float(monthly_expenses),
             'cumulativeResult': cumulative_result,
+            'annualRevenue': float(annual_revenue),
             'selectedMonth': month,
             'selectedYear': year,
         }
