@@ -138,6 +138,12 @@ export function ProductsContent({ initialProducts, categories: initialCategories
             },
             { key: "unit", header: "Un.", width: "50px" },
             {
+              key: "selling_price",
+              header: "Preço Venda",
+              align: "right",
+              render: (item) => item.selling_price ? `R$ ${Number(item.selling_price).toFixed(2)}` : "-",
+            },
+            {
               key: "purchase_price",
               header: "Preço Compra",
               align: "right",

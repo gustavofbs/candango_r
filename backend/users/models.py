@@ -7,6 +7,7 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     allowed_pages = models.JSONField(default=None, null=True, blank=True)
+    max_discount = models.IntegerField(default=0, verbose_name='Desconto Máximo (%)')
 
     class Meta:
         verbose_name = 'Perfil de Usuário'

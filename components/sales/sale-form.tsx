@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
 import { DataGrid } from "@/components/erp/data-grid"
 import type { Customer, Product, CostRefinement, Sale } from "@/lib/types"
 import { salesApi, productsApi, costsApi } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 interface SaleItem {
   product_id: number
@@ -18,9 +19,11 @@ interface SaleItem {
   cost_refinement_code?: string
   create_refinement?: boolean
   discount: number
+  discountPct: number
   tax: number
   freight: number
   total_price: number
+  item_status: string
 }
 
 interface SaleFormProps {
@@ -32,9 +35,18 @@ interface SaleFormProps {
 }
 
 export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFormProps) {
+  const { user } = useAuth()
+  const maxDiscount = user?.is_staff ? 100 : (user?.max_discount ?? 0)
+  const isAdmin = user?.is_staff === true
   const safeCustomers = Array.isArray(customers) ? customers : []
   const safeProducts = Array.isArray(products) ? products : []
   const [saleNumber, setSaleNumber] = useState(sale?.sale_number || "")
+  const [customerQuery, setCustomerQuery] = useState("")
+  const [customerOpen, setCustomerOpen] = useState(false)
+  const [productQuery, setProductQuery] = useState("")
+  const [productOpen, setProductOpen] = useState(false)
+  const customerRef = useRef<HTMLDivElement>(null)
+  const productRef = useRef<HTMLDivElement>(null)
   
   // Função para obter data local no formato YYYY-MM-DD
   const getLocalDateString = () => {
@@ -67,9 +79,11 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         unit_cost: item.unit_cost,
         cost_refinement_code: item.cost_refinement_code,
         discount: item.discount,
+        discountPct: (Number(item.quantity) > 0 && Number(item.unit_price) > 0) ? Math.round((Number(item.discount) / (Number(item.quantity) * Number(item.unit_price))) * 100) : 0,
         tax: item.tax,
         freight: item.freight,
         total_price: itemTotal,
+        item_status: item.item_status || 'pendente',
       }
     }) || []
   )
@@ -128,12 +142,13 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
             unit_cost: Number(item.unit_cost),
             cost_refinement_code: item.cost_refinement_code,
             discount: Number(item.discount),
+            discountPct: (Number(item.quantity) > 0 && Number(item.unit_price) > 0) ? Math.round((Number(item.discount) / (Number(item.quantity) * Number(item.unit_price))) * 100) : 0,
             tax: Number(item.tax),
             freight: Number(item.freight),
             total_price: itemTotal,
+            item_status: item.item_status || 'pendente',
           }
         })
-        console.log("Loaded items:", loadedItems)
         setItems(loadedItems)
       }
     }
@@ -160,15 +175,27 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     fetchRefinements()
   }, [newItem.product_id])
 
+  const uniformeAutoStatus = useMemo(() => {
+    if (formData.sale_type !== 'uniforme') return null
+    if (items.length === 0) return 'em_producao'
+    return items.every(i => i.item_status === 'entregue') ? 'liquidado' : 'em_producao'
+  }, [formData.sale_type, items])
+
+  const selectedCustomer = safeCustomers.find(c => c.id.toString() === formData.customer_id)
+  const filteredCustomers = customerQuery
+    ? safeCustomers.filter(c => c.name.toLowerCase().includes(customerQuery.toLowerCase()))
+    : safeCustomers
+  const filteredProducts = productQuery
+    ? safeProducts.filter(p => p.name.toLowerCase().includes(productQuery.toLowerCase()))
+    : safeProducts
+
   const addItem = () => {
     const product = safeProducts.find((p) => p.id === Number(newItem.product_id))
     if (!product) return
 
-    // Se criar refinamento estiver marcado, usa 0 como custo inicial
-    // Caso contrário, usa o preço de compra do produto
     const unitCost = newItem.create_refinement ? 0 : Number(product.purchase_price)
-
-    const unitPrice = Number(newItem.unit_price)
+    const defaultPrice = product.selling_price ? Number(product.selling_price) : Number(newItem.unit_price)
+    const unitPrice = Number(newItem.unit_price) || defaultPrice
     const totalPrice = (unitPrice * newItem.quantity) - newItem.discount + Number(newItem.tax) + Number(newItem.freight)
 
     setItems([
@@ -181,9 +208,11 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         unit_cost: unitCost,
         create_refinement: newItem.create_refinement,
         discount: newItem.discount,
+        discountPct: 0,
         tax: Number(newItem.tax),
         freight: Number(newItem.freight),
         total_price: totalPrice,
+        item_status: 'pendente',
       },
     ])
 
@@ -208,7 +237,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
     setSaving(true)
 
     try {
-      // Prepara os dados da venda
+      const effectiveStatus = uniformeAutoStatus ?? formData.status
       const saleData = {
         sale_number: saleNumber,
         sale_type: formData.sale_type,
@@ -219,20 +248,20 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
         payment_method: formData.payment_method,
         nf: formData.nf || null,
         tax_percentage: Number(Number(formData.tax_percentage).toFixed(2)),
-        status: formData.status,
+        status: effectiveStatus,
         notes: formData.notes,
         items: items.map(item => ({
           product: item.product_id,
           quantity: Number(Number(item.quantity).toFixed(2)),
           unit_price: Number(Number(item.unit_price).toFixed(2)),
           unit_cost: Number(Number(item.unit_cost).toFixed(2)),
-          // Se create_refinement está marcado, define o código que será criado
           cost_refinement_code: item.create_refinement 
             ? `REF-${saleNumber}-${item.product_id}` 
             : (item.cost_refinement_code || null),
           discount: Number(Number(item.discount).toFixed(2)),
           tax: Number(Number(item.tax).toFixed(2)),
           freight: Number(Number(item.freight).toFixed(2)),
+          item_status: item.item_status || 'pendente',
         })),
       }
 
@@ -328,18 +357,38 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                 />
               </FormField>
               <FormField label="Cliente:" inline>
-                <select
-                  className="erp-select w-full"
-                  value={formData.customer_id}
-                  onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                >
-                  <option value="">Selecione...</option>
-                  {safeCustomers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.code} - {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative flex-1" ref={customerRef}>
+                  <input
+                    type="text"
+                    className="erp-input w-full"
+                    placeholder="Buscar por nome..."
+                    value={customerQuery !== "" ? customerQuery : (selectedCustomer ? selectedCustomer.name : "")}
+                    onChange={(e) => {
+                      setCustomerQuery(e.target.value)
+                      setCustomerOpen(true)
+                      if (!e.target.value) setFormData({ ...formData, customer_id: "" })
+                    }}
+                    onFocus={() => setCustomerOpen(true)}
+                    onBlur={() => setTimeout(() => setCustomerOpen(false), 150)}
+                  />
+                  {customerOpen && filteredCustomers.length > 0 && (
+                    <div className="absolute z-50 w-full erp-outset bg-white shadow-md" style={{ maxHeight: '150px', overflowY: 'auto', top: '100%' }}>
+                      {filteredCustomers.map(c => (
+                        <div
+                          key={c.id}
+                          className="px-2 py-1 text-[11px] cursor-pointer hover:bg-[#000080] hover:text-white"
+                          onMouseDown={() => {
+                            setFormData({ ...formData, customer_id: c.id.toString() })
+                            setCustomerQuery("")
+                            setCustomerOpen(false)
+                          }}
+                        >
+                          {c.code} - {c.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </FormField>
               <FormField label="Tipo:" inline>
                 <select
@@ -350,6 +399,7 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   <option value="venda">Venda</option>
                   <option value="dispensa">Dispensa</option>
                   <option value="pregao">Pregão</option>
+                  <option value="uniforme">Venda - Uniforme</option>
                 </select>
               </FormField>
               <FormField label="NF:" inline>
@@ -361,29 +411,87 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   placeholder="Número da Nota Fiscal"
                 />
               </FormField>
+              <FormField label="Pagamento:" inline>
+                <select
+                  className="erp-select"
+                  value={formData.payment_method}
+                  onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                >
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="cartao_credito">Cartão de Crédito</option>
+                  <option value="cartao_debito">Cartão de Débito</option>
+                  <option value="pix">PIX</option>
+                  <option value="boleto">Boleto</option>
+                  <option value="transferencia">Transferência</option>
+                </select>
+              </FormField>
+              <FormField label="Status:" inline>
+                {formData.sale_type === 'uniforme' ? (
+                  <span className="erp-input text-[11px] text-gray-600">
+                    {uniformeAutoStatus === 'liquidado' ? '✅ Liquidado' : '🔄 Em Produção'}
+                    <span className="ml-1 text-[9px]">(auto)</span>
+                  </span>
+                ) : (
+                  <select
+                    className="erp-select"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="disputa">Disputa</option>
+                    <option value="aguardando_julgamento">Aguardando Julgamento</option>
+                    <option value="homologado">Homologado</option>
+                    <option value="em_producao">Em Produção</option>
+                    <option value="em_transito">Em Trânsito</option>
+                    <option value="aguardando_pagamento">Aguardando Pagamento</option>
+                    <option value="liquidado">Liquidado</option>
+                  </select>
+                )}
+              </FormField>
             </div>
           </FieldGroup>
 
           <FieldGroup label="Adicionar Item">
             <div className="space-y-2">
               <FormField label="Produto:" inline>
-                <select
-                  className="erp-select w-full"
-                  value={newItem.product_id}
-                  onChange={(e) => setNewItem({ ...newItem, product_id: e.target.value })}
-                >
-                  <option value="">Selecione...</option>
-                  {safeProducts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.code} - {p.name} (Est: {p.current_stock})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative flex-1" ref={productRef}>
+                  <input
+                    type="text"
+                    className="erp-input w-full"
+                    placeholder="Buscar por nome..."
+                    value={productQuery !== "" ? productQuery : (safeProducts.find(p => p.id.toString() === newItem.product_id)?.name || "")}
+                    onChange={(e) => {
+                      setProductQuery(e.target.value)
+                      setProductOpen(true)
+                      if (!e.target.value) setNewItem({ ...newItem, product_id: "", unit_price: 0 })
+                    }}
+                    onFocus={() => setProductOpen(true)}
+                    onBlur={() => setTimeout(() => setProductOpen(false), 150)}
+                  />
+                  {productOpen && filteredProducts.length > 0 && (
+                    <div className="absolute z-50 w-full erp-outset bg-white shadow-md" style={{ maxHeight: '150px', overflowY: 'auto', top: '100%' }}>
+                      {filteredProducts.map(p => (
+                        <div
+                          key={p.id}
+                          className="px-2 py-1 text-[11px] cursor-pointer hover:bg-[#000080] hover:text-white"
+                          onMouseDown={() => {
+                            const price = p.selling_price ? Number(p.selling_price) : 0
+                            setNewItem({ ...newItem, product_id: p.id.toString(), unit_price: price })
+                            setProductQuery("")
+                            setProductOpen(false)
+                          }}
+                        >
+                          {p.code} - {p.name} (Est: {p.current_stock})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </FormField>
               <FormField label="Valor de venda:" inline>
                 <input
                   type="text"
                   className="erp-input w-32"
+                  disabled={!isAdmin}
                   value={newItem.unit_price === 0 ? "" : `R$ ${Number(newItem.unit_price).toFixed(2).replace('.', ',')}`}
                   onChange={(e) => {
                     const numericValue = e.target.value.replace(/\D/g, '')
@@ -418,21 +526,6 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                   </span>
                 </div>
               </FormField>
-              <FormField label="Status:" inline>
-                <select
-                  className="erp-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                >
-                  <option value="disputa">Disputa</option>
-                  <option value="aguardando_julgamento">Aguardando Julgamento</option>
-                  <option value="homologado">Homologado</option>
-                  <option value="em_producao">Em Produção</option>
-                  <option value="em_transito">Em Trânsito</option>
-                  <option value="aguardando_pagamento">Aguardando Pagamento</option>
-                  <option value="liquidado">Liquidado</option>
-                </select>
-              </FormField>
               <button type="button" className="erp-button" onClick={addItem} disabled={!newItem.product_id}>
                 ➜ Adicionar
               </button>
@@ -445,20 +538,22 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
             columns={[
               { key: "product_name", header: "Produto" },
               { key: "quantity", header: "Qtd", width: "50px", align: "right" },
-              {
-                key: "unit_price",
-                header: "Preço Unit.",
-                width: "90px",
-                align: "right",
-                render: (item) => `R$ ${Number(item.unit_price).toFixed(2)}`,
-              },
-              {
-                key: "unit_cost",
-                header: "Custo Unit.",
-                width: "90px",
-                align: "right",
-                render: (item) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
-              },
+              ...(isAdmin ? [
+                {
+                  key: "unit_price",
+                  header: "Preço Unit.",
+                  width: "90px",
+                  align: "right" as const,
+                  render: (item: any) => `R$ ${Number(item.unit_price).toFixed(2)}`,
+                },
+                {
+                  key: "unit_cost",
+                  header: "Custo Unit.",
+                  width: "90px",
+                  align: "right" as const,
+                  render: (item: any) => `R$ ${Number(item.unit_cost).toFixed(2)}`,
+                },
+              ] : []),
               {
                 key: "total_price",
                 header: "Total",
@@ -466,14 +561,59 @@ export function SaleForm({ customers, products, sale, onSave, onCancel }: SaleFo
                 align: "right",
                 render: (item) => `R$ ${Number(item.total_price).toFixed(2)}`,
               },
+              ...(formData.sale_type === 'uniforme' ? [{
+                key: "item_status",
+                header: "Entrega",
+                width: "110px",
+                render: (item: any, index: any) => (
+                  <select
+                    className="erp-select text-[11px]"
+                    style={{ backgroundColor: '#c0c0c0' }}
+                    value={item.item_status}
+                    onClick={(e: any) => e.stopPropagation()}
+                    onChange={(e: any) => {
+                      const ni = [...items]
+                      ni[index] = { ...ni[index], item_status: e.target.value }
+                      setItems(ni)
+                    }}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="entregue">Entregue</option>
+                  </select>
+                ),
+              }] : []),
               {
                 key: "actions",
-                header: "",
-                width: "60px",
-                render: (_, index) => (
-                  <button type="button" className="erp-button !min-w-0 !p-1" onClick={() => removeItem(index)}>
-                    🗑️
-                  </button>
+                header: formData.sale_type === 'uniforme' ? "" : "%",
+                width: formData.sale_type === 'uniforme' ? "40px" : "110px",
+                render: (item: any, index: any) => (
+                  <div className="flex gap-1 justify-center items-center">
+                    {formData.sale_type !== 'uniforme' && (
+                      <div className="flex items-center gap-1" onClick={(e: any) => e.stopPropagation()}>
+                        <input
+                          type="number"
+                          min="0"
+                          max={maxDiscount}
+                          step="1"
+                          className="erp-input !w-12 text-[10px] text-center !p-0"
+                          title={`Máx ${maxDiscount}%`}
+                          value={item.discountPct ?? 0}
+                          onChange={(e: any) => {
+                            const pct = Math.min(Math.max(Number(e.target.value), 0), maxDiscount)
+                            const ni = [...items]
+                            const base = ni[index].quantity * ni[index].unit_price
+                            const disc = (base * pct) / 100
+                            ni[index] = { ...ni[index], discountPct: pct, discount: disc, total_price: base - disc + ni[index].tax + ni[index].freight }
+                            setItems(ni)
+                          }}
+                        />
+                        <span className="text-[10px]">%</span>
+                      </div>
+                    )}
+                    <button type="button" className="erp-button !min-w-0 !p-1" onClick={() => removeItem(index)}>
+                      🗑️
+                    </button>
+                  </div>
                 ),
               },
             ]}

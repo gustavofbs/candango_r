@@ -62,8 +62,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def set_permissions(self, request, pk=None):
         user = self.get_object()
         allowed_pages = request.data.get('allowed_pages', None)
+        max_discount = request.data.get('max_discount', 0)
         profile, _ = UserProfile.objects.get_or_create(user=user)
         profile.allowed_pages = allowed_pages
+        profile.max_discount = int(max_discount)
         profile.save()
         serializer = UserSerializer(user)
         return Response(serializer.data)

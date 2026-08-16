@@ -5,10 +5,11 @@ from rest_framework import serializers
 
 class UserSerializer(serializers.ModelSerializer):
     allowed_pages = serializers.SerializerMethodField()
+    max_discount = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined', 'allowed_pages']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined', 'allowed_pages', 'max_discount']
         read_only_fields = ['id', 'date_joined']
 
     def get_allowed_pages(self, obj):
@@ -18,6 +19,14 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.profile.allowed_pages
         except Exception:
             return None
+
+    def get_max_discount(self, obj):
+        if obj.is_staff:
+            return 100
+        try:
+            return obj.profile.max_discount
+        except Exception:
+            return 0
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

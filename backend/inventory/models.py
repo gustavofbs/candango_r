@@ -40,6 +40,14 @@ class Product(models.Model):
         verbose_name='Categoria'
     )
     unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='UN', verbose_name='Unidade')
+    selling_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Preço de Venda'
+    )
     purchase_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -320,6 +328,7 @@ class Sale(models.Model):
         ('venda', 'Venda'),
         ('dispensa', 'Dispensa'),
         ('pregao', 'Pregão'),
+        ('uniforme', 'Venda - Uniforme'),
     ]
 
     sale_number = models.CharField(max_length=50, unique=True, verbose_name='Número da Venda')
@@ -485,6 +494,13 @@ class SaleItem(models.Model):
         decimal_places=2,
         default=0,
         verbose_name='Lucro'
+    )
+    item_status = models.CharField(
+        max_length=20,
+        choices=[('pendente', 'Pendente'), ('entregue', 'Entregue')],
+        default='pendente',
+        blank=True,
+        verbose_name='Status do Item'
     )
 
     class Meta:

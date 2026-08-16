@@ -16,7 +16,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'code', 'name', 'composition', 'size', 'category', 'category_name',
-            'unit', 'purchase_price', 'current_stock',
+            'unit', 'selling_price', 'purchase_price', 'current_stock',
             'min_stock', 'max_stock', 'location', 'active',
             'created_at', 'updated_at'
         ]
@@ -106,7 +106,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
             'id', 'product', 'product_name', 'product_code',
             'quantity', 'unit_price', 'unit_cost', 'cost_refinement_code',
             'cost_snapshot', 'cost_calculated_at', 'discount', 
-            'tax', 'freight', 'total_price', 'total_cost', 'profit'
+            'tax', 'freight', 'total_price', 'total_cost', 'profit', 'item_status'
         ]
         read_only_fields = ['id', 'total_price', 'total_cost', 'profit', 'cost_calculated_at']
 
@@ -177,43 +177,45 @@ class SaleCreateSerializer(serializers.ModelSerializer):
         
         for item_data in items_data:
             sale_item = SaleItem.objects.create(sale=sale, **item_data)
-            
-            # Reduzir estoque do produto automaticamente
             product = sale_item.product
-            quantity = float(sale_item.quantity)
-            
-            # Atualizar estoque atual do produto
-            product.current_stock = float(product.current_stock) - quantity
+            product.current_stock = float(product.current_stock) - float(sale_item.quantity)
             product.save()
+        
+        if sale.sale_type == 'uniforme':
+            all_delivered = sale.items.count() > 0 and all(
+                i.item_status == 'entregue' for i in sale.items.all()
+            )
+            sale.status = 'liquidado' if all_delivered else 'em_producao'
+            sale.save()
         
         return sale
     
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
         
-        # Reverter estoque dos itens antigos
         for old_item in instance.items.all():
             product = old_item.product
             product.current_stock = float(product.current_stock) + float(old_item.quantity)
             product.save()
         
-        # Atualizar campos da venda
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
-        # Deletar itens antigos e criar novos
         if items_data is not None:
             instance.items.all().delete()
-            
             for item_data in items_data:
                 sale_item = SaleItem.objects.create(sale=instance, **item_data)
-                
-                # Reduzir estoque do produto
                 product = sale_item.product
-                quantity = float(sale_item.quantity)
-                product.current_stock = float(product.current_stock) - quantity
+                product.current_stock = float(product.current_stock) - float(sale_item.quantity)
                 product.save()
+        
+        if instance.sale_type == 'uniforme':
+            all_delivered = instance.items.count() > 0 and all(
+                i.item_status == 'entregue' for i in instance.items.all()
+            )
+            instance.status = 'liquidado' if all_delivered else 'em_producao'
+            instance.save()
         
         return instance
 

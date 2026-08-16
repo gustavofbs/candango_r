@@ -61,6 +61,7 @@ export function UsersContent() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [permPages, setPermPages] = useState<Set<string>>(new Set())
+  const [permMaxDiscount, setPermMaxDiscount] = useState(0)
 
   useEffect(() => {
     loadUsers()
@@ -119,6 +120,7 @@ export function UsersContent() {
     } else {
       setPermPages(new Set(u.allowed_pages))
     }
+    setPermMaxDiscount(u.max_discount ?? 0)
     setMode("permissions")
   }
 
@@ -194,7 +196,7 @@ export function UsersContent() {
     try {
       const allSelected = ALL_PAGES.every((p) => permPages.has(p.href))
       const pages = allSelected ? null : Array.from(permPages) as string[]
-      await usersApi.setPermissions(selectedUser.id, pages)
+      await usersApi.setPermissions(selectedUser.id, pages, permMaxDiscount)
       setSuccess("Permissões atualizadas com sucesso.")
       await loadUsers()
       setTimeout(closeForm, 1200)
@@ -447,6 +449,20 @@ export function UsersContent() {
                       >
                         Desmarcar Todos
                       </button>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-[#d4d0c8]">
+                      <label className="block text-[11px] font-bold mb-1">Desconto Máximo em Vendas (%)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="erp-input w-20"
+                          value={permMaxDiscount}
+                          onChange={(e) => setPermMaxDiscount(Math.min(100, Math.max(0, Number(e.target.value))))}
+                        />
+                        <span className="text-[11px] text-gray-500">0 = sem desconto, 100 = desconto total</span>
+                      </div>
                     </div>
                   </>
                 )}

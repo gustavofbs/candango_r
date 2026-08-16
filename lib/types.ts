@@ -14,6 +14,7 @@ export interface Product {
   category_id: number | null
   category_name?: string
   unit: string
+  selling_price?: number | null
   purchase_price: number
   current_stock: number
   min_stock: number
@@ -155,6 +156,7 @@ export interface SaleItem {
   total_price: number
   total_cost: number
   profit: number
+  item_status?: string
 }
 
 export interface StockMovement {

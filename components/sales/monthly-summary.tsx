@@ -5,6 +5,7 @@ import { ErpWindow } from "@/components/erp/window"
 import { StatusBadge } from "@/components/erp/status-badge"
 import type { Sale, Customer } from "@/lib/types"
 import { companyApi, customersApi } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 import type { Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
 
@@ -18,6 +19,7 @@ const TYPE_MAP: Record<string, string> = {
   venda: "Venda",
   dispensa: "Dispensa",
   pregao: "Pregão",
+  uniforme: "Uniforme",
 }
 
 const STATUS_MAP: Record<string, { label: string; color: "green" | "yellow" | "cyan" | "orange" | "red" }> = {
@@ -33,6 +35,8 @@ const STATUS_MAP: Record<string, { label: string; color: "green" | "yellow" | "c
 const fmt = (n: number) => `R$ ${n.toFixed(2)}`
 
 export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlySummaryProps) {
+  const { user } = useAuth()
+  const isAdmin = user?.is_staff ?? false
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const date = new Date()
     const year = date.getFullYear()
@@ -106,6 +110,7 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
         unit_cost: Number(item.unit_cost),
         total_cost: Number(item.unit_cost) * Number(item.quantity),
         profit: Number(item.profit),
+        item_status: item.item_status || 'pendente',
       }))
 
       const total_price = items.reduce((s: number, i: any) => s + i.total_price, 0)
@@ -308,9 +313,9 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
               <th style={{ width: "62px", textAlign: "center" }} className="sticky top-0 bg-[#d4d0c8] z-10">Quant.</th>
               <th style={{ width: "85px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">V. Unit.</th>
               <th style={{ width: "95px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">Valor Total</th>
-              <th style={{ width: "85px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">C. Unit.</th>
-              <th style={{ width: "95px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">Custo Total</th>
-              <th style={{ width: "95px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">Lucro</th>
+              {isAdmin && <th style={{ width: "85px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">C. Unit.</th>}
+              {isAdmin && <th style={{ width: "95px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">Custo Total</th>}
+              {isAdmin && <th style={{ width: "95px", textAlign: "right" }} className="sticky top-0 bg-[#d4d0c8] z-10">Lucro</th>}
               <th style={{ width: "110px", textAlign: "center" }} className="sticky top-0 bg-[#d4d0c8] z-10">Status</th>
             </tr>
           </thead>
@@ -383,13 +388,15 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
                         : <span style={{ color: "#888", fontStyle: "italic" }} title="Múltiplos itens — expanda para ver">≈</span>}
                     </td>
                     <td style={{ textAlign: "right" }}>{fmt(row.total_price)}</td>
-                    <td style={{ textAlign: "right" }}>
-                      {row.unit_cost !== null
-                        ? fmt(row.unit_cost)
-                        : <span style={{ color: "#888", fontStyle: "italic" }} title="Múltiplos itens — expanda para ver">≈</span>}
-                    </td>
-                    <td style={{ textAlign: "right" }}>{fmt(row.total_cost)}</td>
-                    <td style={{ textAlign: "right" }}>{fmt(row.total_profit)}</td>
+                    {isAdmin && (
+                      <td style={{ textAlign: "right" }}>
+                        {row.unit_cost !== null
+                          ? fmt(row.unit_cost)
+                          : <span style={{ color: "#888", fontStyle: "italic" }} title="Múltiplos itens — expanda para ver">≈</span>}
+                      </td>
+                    )}
+                    {isAdmin && <td style={{ textAlign: "right" }}>{fmt(row.total_cost)}</td>}
+                    {isAdmin && <td style={{ textAlign: "right" }}>{fmt(row.total_profit)}</td>}
                     <td style={{ textAlign: "center" }}>
                       <StatusBadge color={status.color}>{status.label}</StatusBadge>
                     </td>
@@ -409,15 +416,24 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
                         <td colSpan={6} className="text-[11px]" style={{ paddingLeft: "18px" }}>
                           <span className="text-gray-400 mr-1">↳</span>
                           {item.product_name}
+                          {row.sale_type === 'uniforme' && (
+                            <span className={`ml-2 px-1 py-0 text-[9px] rounded font-bold ${
+                              item.item_status === 'entregue'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {item.item_status === 'entregue' ? '✅ Entregue' : '⏳ Pendente'}
+                            </span>
+                          )}
                         </td>
                         <td style={{ textAlign: "center" }} className="text-[11px]">
                           {Math.round(item.quantity)}
                         </td>
                         <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.unit_price)}</td>
                         <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.total_price)}</td>
-                        <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.unit_cost)}</td>
-                        <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.total_cost)}</td>
-                        <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.profit)}</td>
+                        {isAdmin && <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.unit_cost)}</td>}
+                        {isAdmin && <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.total_cost)}</td>}
+                        {isAdmin && <td style={{ textAlign: "right" }} className="text-[11px]">{fmt(item.profit)}</td>}
                         <td></td>
                       </tr>
                     ))
@@ -436,9 +452,9 @@ export function MonthlySummary({ sales, selectedSaleId, onSaleSelect }: MonthlyS
           <div><span className="font-bold">Vendas:</span> {monthlyData.totals.sale_count}</div>
           <div><span className="font-bold">V. Unit.:</span> {fmt(monthlyData.totals.avg_unit_price)}</div>
           <div><span className="font-bold">V. Total:</span> {fmt(monthlyData.totals.total_price)}</div>
-          <div><span className="font-bold">C. Unit.:</span> {fmt(monthlyData.totals.avg_unit_cost)}</div>
-          <div><span className="font-bold">C. Total:</span> {fmt(monthlyData.totals.total_cost)}</div>
-          <div><span className="font-bold">Lucro:</span> {fmt(monthlyData.totals.total_profit)}</div>
+          {isAdmin && <div><span className="font-bold">C. Unit.:</span> {fmt(monthlyData.totals.avg_unit_cost)}</div>}
+          {isAdmin && <div><span className="font-bold">C. Total:</span> {fmt(monthlyData.totals.total_cost)}</div>}
+          {isAdmin && <div><span className="font-bold">Lucro:</span> {fmt(monthlyData.totals.total_profit)}</div>}
         </div>
       </div>
     </ErpWindow>

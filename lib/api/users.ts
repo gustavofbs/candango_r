@@ -10,6 +10,7 @@ export interface AppUser {
   is_active: boolean
   date_joined: string
   allowed_pages: string[] | null
+  max_discount: number
 }
 
 export interface CreateUserPayload {
@@ -75,8 +76,8 @@ export const usersApi = {
     await apiClient.post(`/users/${id}/reset_password/`, data)
   },
 
-  setPermissions: async (id: number, allowed_pages: string[] | null): Promise<AppUser> => {
-    const response = await apiClient.post(`/users/${id}/set_permissions/`, { allowed_pages })
+  setPermissions: async (id: number, allowed_pages: string[] | null, max_discount: number): Promise<AppUser> => {
+    const response = await apiClient.post(`/users/${id}/set_permissions/`, { allowed_pages, max_discount })
     return response.data
   },
 }

@@ -28,6 +28,7 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
     size: product?.size || "",
     category: product?.category_id || null,
     unit: product?.unit || "UN",
+    selling_price: product?.selling_price ?? null,
     purchase_price: product?.purchase_price || 0,
     current_stock: product?.current_stock || "",
     min_stock: product?.min_stock || "",
@@ -44,6 +45,7 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
       const data = {
         ...formData,
         category: formData.category || null,
+        selling_price: formData.selling_price !== null ? Number(formData.selling_price) : null,
         purchase_price: Number(formData.purchase_price),
         current_stock: formData.current_stock === "" ? 0 : Number(formData.current_stock),
         min_stock: formData.min_stock === "" ? 0 : Number(formData.min_stock),
@@ -129,6 +131,19 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
 
           <FieldGroup label="Preços e Estoque">
             <div className="space-y-2">
+              <FormField label="Preço Venda:" inline>
+                <input
+                  type="text"
+                  className="erp-input w-32"
+                  value={formData.selling_price === null || formData.selling_price === 0 ? "" : `R$ ${Number(formData.selling_price).toFixed(2).replace('.', ',')}`}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    const valueInReais = numericValue === "" ? null : Number(numericValue) / 100
+                    setFormData({ ...formData, selling_price: valueInReais })
+                  }}
+                  placeholder="R$ 0,00"
+                />
+              </FormField>
               <FormField label="Preço Compra:" inline>
                 <input
                   type="text"
