@@ -9,16 +9,8 @@ import { ExpenseForm } from "@/components/expenses/expense-form"
 import type { Expense } from "@/lib/types"
 import { expensesApi } from "@/lib/api"
 
-interface ExpensesContentProps {
-  initialExpenses: Expense[]
-}
-
-export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
-  const [expenses, setExpenses] = useState(Array.isArray(initialExpenses) ? initialExpenses : [])
-
-  useEffect(() => {
-    setExpenses(Array.isArray(initialExpenses) ? initialExpenses : [])
-  }, [initialExpenses])
+export function ExpensesContent() {
+  const [expenses, setExpenses] = useState<Expense[]>([])
 
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<number | undefined>()
@@ -39,6 +31,10 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
       console.error("Erro ao atualizar despesas:", error)
     }
   }
+
+  useEffect(() => {
+    refreshExpenses()
+  }, [])
 
   const handleNew = () => {
     setSelectedExpense(null)
@@ -75,12 +71,9 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
   // Filtrar despesas por período
   const monthlyExpenses = useMemo(() => {
     return expenses.filter((expense: Expense) => {
-      const expenseDate = new Date(expense.date)
-      const [year, month] = selectedMonth.split('-')
-      const expenseYear = expenseDate.getFullYear()
-      const expenseMonth = expenseDate.getMonth() + 1
-      
-      return expenseYear === parseInt(year) && expenseMonth === parseInt(month)
+      const [expenseYear, expenseMonth] = expense.date.split('-').map(Number)
+      const [year, month] = selectedMonth.split('-').map(Number)
+      return expenseYear === year && expenseMonth === month
     })
   }, [expenses, selectedMonth])
 
@@ -146,7 +139,7 @@ export function ExpensesContent({ initialExpenses }: ExpensesContentProps) {
               key: "date",
               header: "Data",
               width: "100px",
-              render: (item) => new Date(item.date).toLocaleDateString('pt-BR'),
+              render: (item) => { const [y, m, d] = item.date.split('-'); return `${d}/${m}/${y}` },
             },
             {
               key: "active",

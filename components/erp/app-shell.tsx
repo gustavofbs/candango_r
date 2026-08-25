@@ -16,12 +16,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { isLoading, isAuthenticated, user } = useAuth()
   const isLoginPage = pathname === '/login'
 
-  const hasPageAccess = !isAuthenticated || !user || user.is_staff ||
-    user.allowed_pages === null ||
-    user.allowed_pages === undefined ||
-    pathname === '/' ||
-    !PROTECTED_PATHS.includes(pathname) ||
-    (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(pathname))
+  const hasPageAccess = !isAuthenticated || !user || user.is_staff || (
+    pathname !== '/' && (
+      user.allowed_pages === null ||
+      user.allowed_pages === undefined ||
+      !PROTECTED_PATHS.includes(pathname) ||
+      (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(pathname))
+    )
+  )
 
   useEffect(() => {
     if (!isLoginPage && !isLoading && !isAuthenticated) {
@@ -30,10 +32,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [isLoginPage, isLoading, isAuthenticated])
 
   useEffect(() => {
-    if (!isLoginPage && !isLoading && isAuthenticated && !hasPageAccess && pathname !== '/') {
-      window.location.href = '/'
+    if (!isLoginPage && !isLoading && isAuthenticated && !hasPageAccess) {
+      const firstAllowed = Array.isArray(user?.allowed_pages) && user.allowed_pages.length > 0
+        ? user.allowed_pages[0]
+        : '/produtos'
+      window.location.href = firstAllowed
     }
-  }, [isLoginPage, isLoading, isAuthenticated, hasPageAccess, pathname])
+  }, [isLoginPage, isLoading, isAuthenticated, hasPageAccess, pathname, user])
 
   if (isLoginPage) {
     return <>{children}</>

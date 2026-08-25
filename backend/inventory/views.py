@@ -98,6 +98,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
 class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'expense_type']
     ordering_fields = ['date', 'amount', 'created_at']
@@ -477,6 +478,8 @@ def dashboard_view(request):
             'monthlyProfit': float(monthly_profit),
             'monthlyExpenses': float(monthly_expenses),
             'cumulativeResult': cumulative_result,
+            'cumulativeProfit': float(cumulative_profit),
+            'cumulativeExpenses': float(cumulative_expenses),
             'annualRevenue': float(annual_revenue),
             'selectedMonth': month,
             'selectedYear': year,

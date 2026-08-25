@@ -6,8 +6,9 @@ import { SalesReport } from "@/components/reports/sales-report"
 import { CustomersReport } from "@/components/reports/customers-report"
 import { ProductsReport } from "@/components/reports/products-report"
 import { CostsReport } from "@/components/reports/costs-report"
+import { ExpensesReport } from "@/components/reports/expenses-report"
 
-type ReportTab = "sales" | "customers" | "products" | "costs"
+type ReportTab = "sales" | "customers" | "products" | "costs" | "expenses"
 
 export function ReportsContent() {
   const [activeTab, setActiveTab] = useState<ReportTab>("sales")
@@ -48,12 +49,21 @@ export function ReportsContent() {
           >
             💰 Custos de Produção
           </button>
+          <button
+            className={`px-3 py-1 text-[11px] erp-button ${
+              activeTab === "expenses" ? "erp-inset" : ""
+            }`}
+            onClick={() => setActiveTab("expenses")}
+          >
+            💸 Despesas
+          </button>
         </div>
 
         {activeTab === "sales" && <SalesReport />}
         {activeTab === "customers" && <CustomersReport />}
         {activeTab === "products" && <ProductsReport />}
         {activeTab === "costs" && <CostsReport />}
+        {activeTab === "expenses" && <ExpensesReport />}
       </ErpWindow>
     </div>
   )

@@ -17,6 +17,8 @@ interface DashboardData {
   monthlyProfit: number
   monthlyExpenses: number
   cumulativeResult: number
+  cumulativeProfit: number
+  cumulativeExpenses: number
   annualRevenue: number
   selectedMonth: number
   selectedYear: number
@@ -61,11 +63,11 @@ export function DashboardContent() {
     )
   }
 
-  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, monthlyResult, monthlyProfit, monthlyExpenses, cumulativeResult, annualRevenue } = data
+  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, monthlyProfit, cumulativeProfit, cumulativeExpenses, annualRevenue } = data
   return (
     <div className="space-y-2">
       <ErpWindow title="Dashboard - Visão Geral">
-        <div className="grid grid-cols-6 gap-2 mb-4">
+        <div className="grid grid-cols-7 gap-2 mb-4">
           <div className="erp-inset p-3 text-center">
             <div className="text-2xl font-bold text-[#000080]">{totalProducts}</div>
             <div className="text-[11px]">Produtos Cadastrados</div>
@@ -79,27 +81,30 @@ export function DashboardContent() {
             <div className="text-[11px]">Fornecedores</div>
           </div>
           <div className="erp-inset p-3 text-center">
-            <div
-              className={`text-2xl font-bold ${
-                cumulativeResult >= 0 ? "text-[#008000]" : "text-[#FF0000]"
-              }`}
-            >
-              R$ {formatCurrency(cumulativeResult)}
+            <div className="text-2xl font-bold text-[#FF0000]">
+              R$ {formatCurrency(cumulativeExpenses)}
             </div>
-            <div className="text-[11px]">Lucro Acumulado</div>
+            <div className="text-[11px]">Despesas Acumuladas</div>
           </div>
           <div className="erp-inset p-3 text-center">
             <div
               className={`text-2xl font-bold ${
-                monthlyResult >= 0 ? "text-[#008000]" : "text-[#FF0000]"
+                monthlyProfit >= 0 ? "text-[#008000]" : "text-[#FF0000]"
               }`}
             >
-              R$ {formatCurrency(monthlyResult)}
+              R$ {formatCurrency(monthlyProfit)}
             </div>
-            <div className="text-[11px]">Resultado Mensal</div>
-            <div className="text-[9px] text-gray-600 mt-1">
-              Lucro: R$ {formatCurrency(monthlyProfit)} - Despesas: R$ {formatCurrency(monthlyExpenses)}
+            <div className="text-[11px]">Faturamento Acumulado</div>
+          </div>
+          <div className="erp-inset p-3 text-center">
+            <div
+              className={`text-2xl font-bold ${
+                cumulativeProfit >= 0 ? "text-[#008000]" : "text-[#FF0000]"
+              }`}
+            >
+              R$ {formatCurrency(cumulativeProfit)}
             </div>
+            <div className="text-[11px]">Lucro Acumulado</div>
           </div>
           <div className="erp-inset p-3 text-center">
             <div className="text-2xl font-bold text-[#008000]">
