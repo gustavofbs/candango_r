@@ -2,11 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ErpWindow } from "@/components/erp/window"
 import { FieldGroup, FormField } from "@/components/erp/field-group"
-import type { Expense } from "@/lib/types"
-import { expensesApi } from "@/lib/api"
+import type { Expense, Category } from "@/lib/types"
+import { expensesApi, categoriesApi } from "@/lib/api"
 
 interface ExpenseFormProps {
   expense: Expense | null
@@ -19,11 +19,17 @@ export function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormProps) {
     name: expense?.name || "",
     amount: expense?.amount || 0,
     expense_type: expense?.expense_type || "FIXO",
+    category: expense?.category ?? null,
     date: expense?.date || new Date().toISOString().split('T')[0],
     notes: expense?.notes || "",
     active: expense?.active ?? true,
   })
   const [saving, setSaving] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+
+  useEffect(() => {
+    categoriesApi.getAll().then(setCategories).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +89,18 @@ export function ExpenseForm({ expense, onSave, onCancel }: ExpenseFormProps) {
                 >
                   <option value="FIXO">Fixo</option>
                   <option value="VARIAVEL">Variável</option>
+                </select>
+              </FormField>
+              <FormField label="Categoria:" inline>
+                <select
+                  className="erp-input w-40"
+                  value={formData.category ?? ""}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value ? Number(e.target.value) : null })}
+                >
+                  <option value="">-- Nenhuma --</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </FormField>
               <FormField label="Data:" inline>

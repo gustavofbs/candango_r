@@ -5,6 +5,7 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { customersApi, companyApi } from "@/lib/api"
 import type { Customer, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+import { generateExcel } from "@/lib/utils/excel-generator"
 
 export function CustomersReport() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -61,6 +62,26 @@ export function CustomersReport() {
     setSelectedItems(newSelected)
   }
 
+  const handleGenerateExcel = () => {
+    const rows = selectedItems.size > 0
+      ? customers.filter((_, idx) => selectedItems.has(idx))
+      : customers
+    if (rows.length === 0) { alert("Nenhum dado para exportar"); return }
+    const excelData = rows.map(row => ({
+      "Código": row.code || '',
+      "Nome": row.name,
+      "CPF/CNPJ": row.document || '',
+      "Telefone": row.phone || '',
+      "Email": row.email || '',
+      "Endereço": row.address || '',
+      "Bairro": row.neighborhood || '',
+      "Cidade": row.city || '',
+      "UF": row.state || '',
+      "CEP": row.zipcode || '',
+    }))
+    generateExcel(excelData, 'relatorio-clientes', 'Clientes')
+  }
+
   const handleGeneratePDF = async () => {
     if (selectedItems.size === 0) {
       alert("Selecione pelo menos um item para gerar o PDF")
@@ -78,7 +99,7 @@ export function CustomersReport() {
     // Preparar dados para o PDF
     const pdfData = selectedData.map(customer => ({
       "Nome": customer.name,
-      "CPF/CNPJ": customer.document,
+      "CPF/CNPJ": customer.cpf_cnpj,
       "Telefone": customer.phone,
       "Email": customer.email,
     }))
@@ -116,6 +137,9 @@ export function CustomersReport() {
   return (
     <div className="space-y-2">
       <div className="flex gap-2 items-center mb-2">
+        <button className="erp-button" onClick={handleGenerateExcel}>
+          📊 Exportar Excel
+        </button>
         <button className="erp-button ml-auto" onClick={handleGeneratePDF}>
           📄 Gerar PDF
         </button>

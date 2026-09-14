@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/erp/status-badge"
 import { salesApi, companyApi } from "@/lib/api"
 import type { Sale, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+import { generateExcel } from "@/lib/utils/excel-generator"
 
 const statusOptions = [
   { value: 'disputa', label: 'Disputa' },
@@ -156,6 +157,28 @@ export function SalesReport() {
     setSelectedItems(newSelected)
   }
 
+  const handleGenerateExcel = () => {
+    const rows = selectedItems.size > 0
+      ? expandedData.filter((_: any, idx: number) => selectedItems.has(idx))
+      : expandedData
+    if (rows.length === 0) { alert("Nenhum dado para exportar"); return }
+    const excelData = rows.map((row: any) => ({
+      "Nº Venda": row.sale_number,
+      "Data": (() => { const [y, m, d] = row.sale_date.split('-'); return `${d}/${m}/${y}` })(),
+      "UF": row.customer_state || '',
+      "Cliente": row.customer_name,
+      "Produto": row.product_name,
+      "Quantidade": Number(row.quantity),
+      "Valor Unitário (R$)": Number(row.unit_price),
+      "Valor Total (R$)": Number(row.total_price),
+      "Custo Unitário (R$)": Number(row.unit_cost),
+      "Custo Total (R$)": Number(row.total_cost),
+      "Lucro (R$)": Number(row.profit),
+      "Status": statusLabels[row.status] || row.status,
+    }))
+    generateExcel(excelData, `relatorio-vendas-${startDate}-${endDate}`, 'Vendas')
+  }
+
   const handleGeneratePDF = async () => {
     if (selectedItems.size === 0) {
       alert("Selecione pelo menos um item para gerar o PDF")
@@ -266,6 +289,9 @@ export function SalesReport() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <button className="erp-button" onClick={handleGenerateExcel}>
+          📊 Exportar Excel
+        </button>
         <button className="erp-button ml-auto" onClick={handleGeneratePDF}>
           📄 Gerar PDF
         </button>

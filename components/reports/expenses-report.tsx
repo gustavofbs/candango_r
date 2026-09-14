@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/erp/status-badge"
 import { expensesApi, companyApi } from "@/lib/api"
 import type { Expense, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+import { generateExcel } from "@/lib/utils/excel-generator"
 
 export function ExpensesReport() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -112,6 +113,23 @@ export function ExpensesReport() {
     setSelectedItems(newSelected)
   }
 
+  const handleGenerateExcel = () => {
+    const rows = selectedItems.size > 0
+      ? filteredExpenses.filter((_, idx) => selectedItems.has(idx))
+      : filteredExpenses
+    if (rows.length === 0) { alert("Nenhum dado para exportar"); return }
+    const excelData = rows.map(row => ({
+      "Data": (() => { const [y, m, d] = row.date.split('-'); return `${d}/${m}/${y}` })(),
+      "Nome da Despesa": row.name,
+      "Categoria": row.category_name || '-',
+      "Tipo": row.expense_type === 'FIXO' ? 'Fixo' : 'Variável',
+      "Valor (R$)": Number(row.amount),
+      "Status": row.active ? 'Ativo' : 'Inativo',
+      "Observações": row.notes || '',
+    }))
+    generateExcel(excelData, `relatorio-despesas-${startDate}-${endDate}`, 'Despesas')
+  }
+
   const handleGeneratePDF = async () => {
     if (selectedItems.size === 0) {
       alert("Selecione pelo menos um item para gerar o PDF")
@@ -141,6 +159,7 @@ export function ExpensesReport() {
     const pdfData = selectedData.map(row => ({
       "Data": (() => { const [y, m, d] = row.date.split('-'); return `${d}/${m}/${y}` })(),
       "Nome da Despesa": row.name,
+      "Categoria": row.category_name || '-',
       "Tipo": row.expense_type === 'FIXO' ? 'Fixo' : 'Variável',
       "Valor": `R$ ${Number(row.amount).toFixed(2)}`,
       "Status": row.active ? 'Ativo' : 'Inativo',
@@ -164,6 +183,7 @@ export function ExpensesReport() {
       columns: [
         { text: "Data", width: 60 },
         { text: "Nome da Despesa", width: "*" },
+        { text: "Categoria", width: 90 },
         { text: "Tipo", width: 70, alignment: "center" },
         { text: "Valor", width: 80, alignment: "right" },
         { text: "Status", width: 60, alignment: "center" },
@@ -195,6 +215,9 @@ export function ExpensesReport() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <button className="erp-button" onClick={handleGenerateExcel}>
+          📊 Exportar Excel
+        </button>
         <button className="erp-button ml-auto" onClick={handleGeneratePDF}>
           📄 Gerar PDF
         </button>
@@ -257,6 +280,7 @@ export function ExpensesReport() {
             },
           },
           { key: "name", header: "Nome da Despesa" },
+          { key: "category_name", header: "Categoria", width: "100px", render: (item) => item.category_name || '-' },
           {
             key: "expense_type",
             header: "Tipo",

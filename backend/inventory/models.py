@@ -177,6 +177,14 @@ class Expense(models.Model):
         ('VARIAVEL', 'Variável'),
     ]
     
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses',
+        verbose_name='Categoria'
+    )
     name = models.CharField(max_length=200, verbose_name='Nome da Despesa')
     amount = models.DecimalField(
         max_digits=10,

@@ -5,6 +5,7 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { costsApi, companyApi } from "@/lib/api"
 import type { ProductionCost, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+import { generateExcel } from "@/lib/utils/excel-generator"
 
 interface CostRow {
   id: string
@@ -127,6 +128,26 @@ export function CostsReport() {
     setSelectedItems(newSelected)
   }
 
+  const handleGenerateExcel = () => {
+    const rows = selectedItems.size > 0
+      ? costRows.filter((_, idx) => selectedItems.has(idx))
+      : costRows
+    if (rows.length === 0) { alert("Nenhum dado para exportar"); return }
+    const excelData = rows.map(row => ({
+      "Código/Venda": row.sale_number || row.id,
+      "Data": (() => { const [y, m, d] = row.date.split('-'); return `${d}/${m}/${y}` })(),
+      "Cliente": row.customer_name,
+      "Produto": `${row.product_code} - ${row.product_name}`,
+      "Quantidade": row.quantity,
+      "Custo Camisa Lisa (R$)": row.camisa_lisa,
+      "Custo DTF/Silk/Sub. (R$)": row.dtf_silk,
+      "Custo Frete/Uber (R$)": row.frete_uber,
+      "Custo Imposto (R$)": row.imposto,
+      "Total (R$)": row.total,
+    }))
+    generateExcel(excelData, `relatorio-custos-${startDate}-${endDate}`, 'Custos de Produção')
+  }
+
   const handleGeneratePDF = () => {
     if (selectedItems.size === 0) {
       alert("Selecione pelo menos um item para gerar o PDF")
@@ -206,6 +227,9 @@ export function CostsReport() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <button className="erp-button" onClick={handleGenerateExcel}>
+          📊 Exportar Excel
+        </button>
         <button className="erp-button ml-auto" onClick={handleGeneratePDF}>
           📄 Gerar PDF
         </button>

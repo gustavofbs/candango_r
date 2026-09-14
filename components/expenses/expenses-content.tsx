@@ -136,6 +136,12 @@ export function ExpensesContent() {
               ),
             },
             {
+              key: "category_name",
+              header: "Categoria",
+              width: "120px",
+              render: (item) => item.category_name || "-",
+            },
+            {
               key: "date",
               header: "Data",
               width: "100px",

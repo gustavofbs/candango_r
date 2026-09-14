@@ -478,7 +478,7 @@ def dashboard_view(request):
             'monthlyProfit': float(monthly_profit),
             'monthlyExpenses': float(monthly_expenses),
             'cumulativeResult': cumulative_result,
-            'cumulativeProfit': float(cumulative_profit),
+            'cumulativeProfit': float(annual_revenue) - float(cumulative_expenses),
             'cumulativeExpenses': float(cumulative_expenses),
             'annualRevenue': float(annual_revenue),
             'selectedMonth': month,

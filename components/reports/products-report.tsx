@@ -5,6 +5,7 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { productsApi, companyApi } from "@/lib/api"
 import type { Product, Company } from "@/lib/types"
 import { generatePDF } from "@/lib/utils/pdf-generator"
+import { generateExcel } from "@/lib/utils/excel-generator"
 
 export function ProductsReport() {
   const [products, setProducts] = useState<Product[]>([])
@@ -59,6 +60,25 @@ export function ProductsReport() {
       newSelected.add(index)
     }
     setSelectedItems(newSelected)
+  }
+
+  const handleGenerateExcel = () => {
+    const rows = selectedItems.size > 0
+      ? products.filter((_, idx) => selectedItems.has(idx))
+      : products
+    if (rows.length === 0) { alert("Nenhum dado para exportar"); return }
+    const excelData = rows.map(row => ({
+      "Código": row.code,
+      "Nome": row.name,
+      "Categoria": row.category_name || '-',
+      "Fornecedor": row.supplier_name || '-',
+      "Preço Venda (R$)": Number(row.selling_price || 0),
+      "Preço Compra (R$)": Number(row.purchase_price),
+      "Estoque Atual": Number(row.current_stock),
+      "Estoque Mínimo": Number(row.min_stock || 0),
+      "Unidade": row.unit || '',
+    }))
+    generateExcel(excelData, 'relatorio-produtos', 'Produtos')
   }
 
   const handleGeneratePDF = async () => {
@@ -121,6 +141,9 @@ export function ProductsReport() {
   return (
     <div className="space-y-2">
       <div className="flex gap-2 items-center mb-2">
+        <button className="erp-button" onClick={handleGenerateExcel}>
+          📊 Exportar Excel
+        </button>
         <button className="erp-button ml-auto" onClick={handleGeneratePDF}>
           📄 Gerar PDF
         </button>

@@ -70,10 +70,13 @@ class SupplierSerializer(serializers.ModelSerializer):
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
+
     class Meta:
         model = Expense
         fields = [
-            'id', 'name', 'amount', 'expense_type', 'date', 'notes', 'active', 'created_at', 'updated_at'
+            'id', 'name', 'amount', 'expense_type', 'category', 'category_name',
+            'date', 'notes', 'active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

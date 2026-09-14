@@ -67,6 +67,8 @@ export interface Expense {
   name: string
   amount: number
   expense_type: 'FIXO' | 'VARIAVEL'
+  category: number | null
+  category_name: string | null
   date: string
   notes: string | null
   active: boolean
