@@ -96,7 +96,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
-    queryset = Expense.objects.all()
+    queryset = Expense.objects.select_related('category').all()
     serializer_class = ExpenseSerializer
     pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
