@@ -54,6 +54,14 @@ class ProductViewSet(viewsets.ModelViewSet):
             context['auto_purchase_price'] = 0.0
         return context
 
+    def perform_create(self, serializer):
+        context = self.get_serializer_context()
+        serializer.save(purchase_price=context.get('auto_purchase_price', 0.0))
+
+    def perform_update(self, serializer):
+        context = self.get_serializer_context()
+        serializer.save(purchase_price=context.get('auto_purchase_price', 0.0))
+
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
         products = self.get_queryset().filter(

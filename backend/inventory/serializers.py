@@ -11,10 +11,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
-    purchase_price = serializers.SerializerMethodField()
 
-    def get_purchase_price(self, obj):
-        return self.context.get('auto_purchase_price', 0.0)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['purchase_price'] = self.context.get('auto_purchase_price', 0.0)
+        return data
 
     class Meta:
         model = Product
@@ -24,7 +25,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'min_stock', 'max_stock', 'location', 'active',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'purchase_price']
 
 
 class CustomerSerializer(serializers.ModelSerializer):
