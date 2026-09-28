@@ -29,7 +29,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
     category: product?.category_id || null,
     unit: product?.unit || "UN",
     selling_price: product?.selling_price ?? null,
-    purchase_price: product?.purchase_price || 0,
     current_stock: product?.current_stock || "",
     min_stock: product?.min_stock || "",
     max_stock: product?.max_stock || "",
@@ -46,7 +45,6 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
         ...formData,
         category: formData.category || null,
         selling_price: formData.selling_price !== null ? Number(formData.selling_price) : null,
-        purchase_price: Number(formData.purchase_price),
         current_stock: formData.current_stock === "" ? 0 : Number(formData.current_stock),
         min_stock: formData.min_stock === "" ? 0 : Number(formData.min_stock),
         max_stock: formData.max_stock === "" ? 0 : Number(formData.max_stock),
@@ -147,14 +145,10 @@ export function ProductForm({ product, categories, onSave, onCancel }: ProductFo
               <FormField label="Preço Compra:" inline>
                 <input
                   type="text"
-                  className="erp-input w-32"
-                  value={formData.purchase_price === 0 ? "" : `R$ ${Number(formData.purchase_price).toFixed(2).replace('.', ',')}`}
-                  onChange={(e) => {
-                    const numericValue = e.target.value.replace(/\D/g, '')
-                    const valueInReais = numericValue === "" ? 0 : Number(numericValue) / 100
-                    setFormData({ ...formData, purchase_price: valueInReais })
-                  }}
-                  placeholder="R$ 0,00"
+                  className="erp-input w-32 bg-gray-100 cursor-not-allowed"
+                  value={product?.purchase_price ? `R$ ${Number(product.purchase_price).toFixed(2).replace('.', ',')}` : "Auto"}
+                  readOnly
+                  title="Calculado automaticamente: Total Despesas Variáveis ÷ Qtd Total Vendida"
                 />
               </FormField>
               <FormField label="Estoque Atual:" inline>

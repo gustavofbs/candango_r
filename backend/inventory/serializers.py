@@ -11,7 +11,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
-    
+    purchase_price = serializers.SerializerMethodField()
+
+    def get_purchase_price(self, obj):
+        return self.context.get('auto_purchase_price', 0.0)
+
     class Meta:
         model = Product
         fields = [

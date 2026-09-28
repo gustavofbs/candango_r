@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, Sum
 from .models import Category, Product, Customer, Supplier, Expense, ProductionCost, Sale, SaleItem, StockMovement, Company
 from .serializers import (
     CategorySerializer, ProductSerializer, CustomerSerializer,
@@ -44,6 +44,16 @@ class ProductViewSet(viewsets.ModelViewSet):
         
         return queryset
     
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        total_variable = Expense.objects.filter(expense_type='VARIAVEL').aggregate(total=Sum('amount'))['total'] or 0
+        total_qty = SaleItem.objects.aggregate(total=Sum('quantity'))['total'] or 0
+        if total_qty > 0:
+            context['auto_purchase_price'] = round(float(total_variable) / float(total_qty), 2)
+        else:
+            context['auto_purchase_price'] = 0.0
+        return context
+
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
         products = self.get_queryset().filter(
