@@ -6,6 +6,15 @@ import { DataGrid } from "@/components/erp/data-grid"
 import { StatusBadge } from "@/components/erp/status-badge"
 import type { Product, Sale } from "@/lib/types"
 import { dashboardApi } from "@/lib/api"
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, LabelList,
+} from "recharts"
+
+interface ExpenseCategoryData {
+  categoria: string
+  total: number
+}
 
 interface DashboardData {
   totalProducts: number
@@ -22,6 +31,7 @@ interface DashboardData {
   annualRevenue: number
   selectedMonth: number
   selectedYear: number
+  expensesByCategory: ExpenseCategoryData[]
 }
 
 export function DashboardContent() {
@@ -41,7 +51,7 @@ export function DashboardContent() {
     setLoading(true)
     try {
       const result = await dashboardApi.getData(selectedMonth, selectedYear)
-      setData(result)
+      setData({ ...result, expensesByCategory: result.expensesByCategory || [] })
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error)
     } finally {
@@ -63,7 +73,15 @@ export function DashboardContent() {
     )
   }
 
-  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, cumulativeProfit, cumulativeExpenses, annualRevenue } = data
+  const { totalProducts, totalCustomers, totalSuppliers, lowStockProducts, recentSales, cumulativeProfit, cumulativeExpenses, annualRevenue, expensesByCategory } = data
+
+  const BAR_COLORS = [
+    "#000080", "#800000", "#008000", "#800080",
+    "#008080", "#808000", "#0000FF", "#FF0000",
+  ]
+
+  const fmtCurrency = (v: number) =>
+    `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   return (
     <div className="space-y-2">
       <ErpWindow title="Dashboard - Visão Geral">
@@ -139,6 +157,52 @@ export function DashboardContent() {
         </div>
       </ErpWindow>
 
+      <ErpWindow title="Despesas Variáveis por Categoria">
+        {expensesByCategory.length === 0 ? (
+          <div className="p-4 text-center text-[11px] text-gray-500">
+            Nenhuma despesa variável cadastrada com categoria.
+          </div>
+        ) : (
+          <div style={{ width: "100%", height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={expensesByCategory}
+                margin={{ top: 24, right: 24, left: 16, bottom: 48 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#c0c0c0" />
+                <XAxis
+                  dataKey="categoria"
+                  tick={{ fontSize: 10, fill: "#333" }}
+                  angle={-30}
+                  textAnchor="end"
+                  interval={0}
+                />
+                <YAxis
+                  tickFormatter={(v) => `R$ ${Number(v).toLocaleString('pt-BR')}`}
+                  tick={{ fontSize: 10, fill: "#333" }}
+                  width={90}
+                />
+                <Tooltip
+                  formatter={(value: number) => [fmtCurrency(value), "Total"]}
+                  contentStyle={{ fontSize: 11, border: "1px solid #808080" }}
+                />
+                <Bar dataKey="total" radius={[2, 2, 0, 0]} maxBarSize={64}>
+                  {expensesByCategory.map((_, i) => (
+                    <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                  ))}
+                  <LabelList
+                    dataKey="total"
+                    position="top"
+                    formatter={(v: number) => `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    style={{ fontSize: 9, fill: "#333" }}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </ErpWindow>
+
       <ErpWindow title="Últimas Vendas">
         <DataGrid
           columns={[
@@ -147,12 +211,12 @@ export function DashboardContent() {
               key: "sale_date",
               header: "Data",
               width: "100px",
-              render: (item) => new Date(item.sale_date).toLocaleDateString("pt-BR"),
+              render: (item) => new Date(item.sale_date as string).toLocaleDateString("pt-BR"),
             },
             {
               key: "customer_name",
               header: "Cliente",
-              render: (item) => item.customer_name || "Cliente não informado",
+              render: (item) => (item.customer_name as string) || "Cliente não informado",
             },
             {
               key: "final_amount",
@@ -171,15 +235,16 @@ export function DashboardContent() {
                   disputa: "red",
                   cancelada: "red",
                 }
+                const s = item.status as string
                 return (
-                  <StatusBadge color={statusColors[item.status] || "yellow"}>
-                    {item.status.toUpperCase()}
+                  <StatusBadge color={statusColors[s] || "yellow"}>
+                    {s.toUpperCase()}
                   </StatusBadge>
                 )
               },
             },
           ]}
-          data={recentSales}
+          data={recentSales as any[]}
           emptyMessage="Nenhuma venda registrada"
         />
       </ErpWindow>

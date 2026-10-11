@@ -16,6 +16,7 @@ interface DashboardData {
   annualRevenue: number
   selectedMonth: number
   selectedYear: number
+  expensesByCategory: { categoria: string; total: number }[]
 }
 
 export const dashboardApi = {

@@ -296,6 +296,7 @@ class ProductionCostViewSet(viewsets.ModelViewSet):
 
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.select_related('customer').prefetch_related('items__product').all()
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['sale_number', 'customer__name']
     ordering_fields = ['sale_date', 'final_amount', 'created_at']
@@ -486,6 +487,21 @@ def dashboard_view(request):
             sale__sale_date__year=year
         ).aggregate(total=Sum('total_price'))['total'] or 0
 
+        # Despesas variáveis agrupadas por categoria (para gráfico no dashboard)
+        raw_chart = list(
+            Expense.objects.filter(expense_type='VARIAVEL', active=True)
+            .values('category__name')
+            .annotate(total=Sum('amount'))
+            .order_by('-total')
+        )
+        expenses_by_category = [
+            {
+                'categoria': item['category__name'] or 'Sem Categoria',
+                'total': float(item['total']),
+            }
+            for item in raw_chart
+        ]
+
         data = {
             'totalProducts': total_products,
             'totalCustomers': total_customers,
@@ -501,6 +517,7 @@ def dashboard_view(request):
             'annualRevenue': float(annual_revenue),
             'selectedMonth': month,
             'selectedYear': year,
+            'expensesByCategory': expenses_by_category,
         }
         
         return Response(data)
