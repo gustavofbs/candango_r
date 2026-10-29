@@ -47,7 +47,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         total_variable = Expense.objects.filter(expense_type='VARIAVEL').aggregate(total=Sum('amount'))['total'] or 0
-        total_qty = SaleItem.objects.aggregate(total=Sum('quantity'))['total'] or 0
+        qty_sales = SaleItem.objects.aggregate(total=Sum('quantity'))['total'] or 0
+        qty_production = ProductionCost.objects.filter(cost_category='production').aggregate(total=Sum('quantity'))['total'] or 0
+        total_qty = float(qty_sales) + float(qty_production)
         if total_qty > 0:
             context['auto_purchase_price'] = round(float(total_variable) / float(total_qty), 2)
         else:

@@ -17,7 +17,7 @@ const ALL_PAGES = [
   { href: "/vendas", label: "Vendas" },
   { href: "/despesas", label: "Despesas" },
   { href: "/custos", label: "Custos de Venda" },
-  { href: "/custos-producao", label: "Custos de Produção" },
+  { href: "/custos-producao", label: "Produção" },
   { href: "/relatorios", label: "Relatórios" },
   { href: "/empresa", label: "Empresa" },
 ]

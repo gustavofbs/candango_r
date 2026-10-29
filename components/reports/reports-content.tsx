@@ -47,7 +47,7 @@ export function ReportsContent() {
             }`}
             onClick={() => setActiveTab("costs")}
           >
-            💰 Custos de Produção
+            💰 Produção
           </button>
           <button
             className={`px-3 py-1 text-[11px] erp-button ${

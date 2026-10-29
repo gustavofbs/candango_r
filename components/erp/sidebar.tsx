@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 
 const menuItems = [
-  { href: "/", label: "Dashboard", icon: "📊" },
+  { href: "/", label: "Dashboard", icon: "📊", staffOnly: true },
   { href: "/produtos", label: "Produtos", icon: "📦" },
   { href: "/categorias", label: "Categorias", icon: "📁" },
   { href: "/clientes", label: "Clientes", icon: "👥" },
@@ -13,7 +13,7 @@ const menuItems = [
   { href: "/vendas", label: "Vendas", icon: "💰" },
   { href: "/despesas", label: "Despesas", icon: "💸" },
   { href: "/custos", label: "Custos de Venda", icon: "📋" },
-  { href: "/custos-producao", label: "Custos de Produção", icon: "🏭" },
+  { href: "/custos-producao", label: "Produção", icon: "🏭" },
   { href: "/relatorios", label: "Relatórios", icon: "📄" },
   { href: "/empresa", label: "Empresa", icon: "🏢" },
 ]
@@ -29,9 +29,11 @@ export function Sidebar() {
   const visibleItems = user?.is_staff
     ? menuItems
     : menuItems.filter(item =>
-        user?.allowed_pages === null ||
-        user?.allowed_pages === undefined ||
-        (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(item.href))
+        !item.staffOnly && (
+          user?.allowed_pages === null ||
+          user?.allowed_pages === undefined ||
+          (Array.isArray(user.allowed_pages) && user.allowed_pages.includes(item.href))
+        )
       )
 
   return (
